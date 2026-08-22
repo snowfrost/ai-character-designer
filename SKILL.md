@@ -1,20 +1,20 @@
 ---
 name: ai-character-designer
-description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs prompts tuned for three image models: gpt-image-2 (OpenAI), 即梦5.0pro (ByteDance Seedream), and flux2krea (FLUX.2 Krea). If an API is configured, it can directly generate portrait, full-body, and three-view images. The skill ALWAYS interviews the user first (性别/年龄/国籍/身份职业/时代服装 → 骨皮形神四问 → 16型定位 → 面部结构), and only auto-generates when the user has no idea. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, or any mention of 骨皮形神 / 麦橘 / 即梦 / flux krea / gpt-image prompts."
+description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts in gpt-image-2 (OpenAI) format. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs bilingual prompts (中文三视图 + English three views). If an API is configured (OPENAI_API_KEY), it can directly generate portrait, full-body, and three-view images. The skill ALWAYS interviews the user first (性别/年龄/国籍/身份职业/时代服装 → 骨皮形神四问 → 16型定位 → 面部结构), shows the full prompts for confirmation, and only auto-generates when the user has no idea. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, or any mention of 骨皮形神 / 麦橘 / gpt-image prompts."
 agent_created: true
 ---
 
 # AI 角色打造设计师（ai-character-designer）
 
 把「审美玄学」翻译成可复制系统的角色设计 Skill。核心产物是**详细的中英双语提示词**，
-分别遵循 gpt-image-2 / 即梦5.0pro / flux2krea 三种模型标准；配置接口后可直接出图
-（肖像 / 全身 / 三视）。一句话心法：**AI 不是帮你创造角色，它是按你的规则设定角色；
+遵循 gpt-image-2 标准，**中英分开——先中文（肖像 / 全身 / 三视），再英文（三视图）**；
+配置接口后可直接出图（肖像 / 全身 / 三视）。一句话心法：**AI 不是帮你创造角色，它是按你的规则设定角色；
 规则模糊，它就随机发挥、千人一面。**
 
 ## 何时使用
 
 - 用户要设计一个有辨识度、不撞脸的 AI 角色 / 虚拟艺人 / 角色设定。
-- 用户要面向具体出图模型（GPT 图像 / 即梦 / FLUX.2 Krea）写提示词。
+- 用户要面向 gpt-image-2（GPT 图像）写提示词。
 - 用户要做角色资产化：标准照锚点、全身、四视图、视频一致性。
 - 用户抱怨「AI 脸千人一面 / 蜡像假面 / 换脸漂移」需要解法。
 
@@ -29,7 +29,7 @@ agent_created: true
 1. **`references/theory.md`** — 骨皮形神 16 型（四问定脸）、审美资产化、麦橘循环论、阵营速查。
 2. **`references/aesthetics.md`** — ima《AI美人指南》PPT 深度拆解（肌肉/肩颈/人体比例/头骨/三庭五眼/眼/鼻唇/侧脸折叠度/颧颌夹角/阔窄面/妆容）+ 出图检查清单。
 3. **`references/engineering.md`** — 刺猬星球工程化流程：标准照→锁脸→全身→四视图→拆结构写差异→身份锁→一致性三招 + 原文全身/四视图模板。
-4. **`references/prompt_standards.md`** — **核心**：三模型提示词习惯对照、骨皮形神→特征词库、装配顺序、API 配置（config.json 结构）。
+4. **`references/prompt_standards.md`** — **核心**：gpt-image-2 提示词标准、骨皮形神→特征词库、装配顺序、API 配置（config.json 结构）。
 5. **`references/prompt_craft.md`** — 写词手艺：小红书结构化提示词高级写法/万能模板/糖系流水线/三要素法/拒完美加肌理 + 麦橘五要素/权重语法/规避层三类翻车/表演大白话/角色小传驱动。
 6. **`references/academic.md`** — 三庭五眼/折叠度/黄金比 + 3 篇论文（解释「AI 脸=当代平均脸」与「结构>对称」）。
 
@@ -117,7 +117,7 @@ agent_created: true
 
 ### 第 5 步：生成提示词（此时才输出！）
 
-所有信息收齐后，用脚本渲染三模型中英双语提示词（肖像/全身/三视）。**脚本会自动做两步审核：**
+所有信息收齐后，用脚本渲染 gpt-image-2 中英双语提示词（肖像/全身/三视，先中文再英文）。**脚本会自动做两步审核：**
 
 1. **角色卡比例审核（`validate_card`）**：按 PPT 比例规则检查角色卡——
    头身比（女约 7 头、男约 7.5 头，网感可到 9，超 9 显怪）、肩宽（≤3 头合理，≥4 头离谱）、
@@ -133,7 +133,7 @@ python <skill>/scripts/generate.py --card character_card.json --out ./out
 
 # 或把第 1~4 步结果整理成角色卡 JSON 后：
 python <skill>/scripts/generate.py --card card.json \
-    --models gpt_image_2,jimeng_5_pro,flux2_krea --views portrait,fullbody,threeview
+    --views portrait,fullbody,threeview
 ```
 
 输出 `./out/prompts.md`（可读提示词 + 末尾附出图检查清单）与 `./out/prompts.json`（结构化）。
@@ -143,25 +143,24 @@ python <skill>/scripts/generate.py --card card.json \
 生成后**把完整提示词展示给用户逐条确认**，不能直接出图：
 
 > 请用户过一遍 `prompts.md` 里的提示词：
-> - 中文 / English 都符合角色设定吗？
-> - 三条提示词（gpt-image-2 / 即梦5.0pro / flux2krea）的差异、负向词合理吗？
-> - 三个视图（肖像 / 全身 / 三视）都符合需求吗？
+> - 中文块（肖像 / 全身 / 三视）符合角色设定吗？
+> - English 块（Portrait / Full-body / Three-view）翻译与语义准确吗？
+> - 三个视图都符合需求吗？
 
 用户可能的反馈与处理：
 - **确认无误** → 进入出图（第 5.6 步）。
 - **要改某处** → 回到对应环节：改角色卡字段 → 重新 `generate.py` 渲染，**再次给用户确认**，循环直到确认。
-- **只想要其中某条 / 某视图** → 用 `--models` / `--views` 参数限定后再出图。
+- **只想要其中某视图** → 用 `--views` 参数限定后再出图。
 
 > 出图前还建议让用户确认 `prompts.md` 末尾的**出图检查清单**与审核警告（`[审核]` 提示的比例/反蜡像问题），必要时先回改角色卡。
 
 ### 第 5.6 步：配置接口直出图（用户确认后才执行）
 
-**只有用户明确确认提示词后**才运行出图。让用户提供 config.json + 环境变量
-（`gpt_image_2`→`OPENAI_API_KEY`；`jimeng_5_pro`→`ARK_API_KEY`；`flux2_krea`→`BFL_API_KEY`）：
+**只有用户明确确认提示词后**才运行出图。让用户提供 config.json + 环境变量（`OPENAI_API_KEY`）：
 ```bash
 python <skill>/scripts/generate.py --card card.json --generate --out ./out
 ```
-脚本会在出图前再次打印提示词摘要并询问确认；确认后才调用接口。
+脚本会在出图前再次打印提示词摘要并询问确认；确认后才调用 gpt-image-2 接口。
 
 **出图后**：把图对照 `prompts.md` 末尾的检查清单逐项核验——
 头身比是否对、肩宽是否离谱、三庭五眼是否成立、有没有蜡像感。检查不过就回改角色卡对应字段
@@ -192,7 +191,7 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
 
 ## 注意事项
 
-- **反蜡像铁律**：每条提示词保留皮肤肌理与血色，避「完美皮肤/8K/超现实」触发词（尤其即梦/FLUX）。
+- **反蜡像铁律**：每条提示词保留皮肤肌理与血色，避「完美皮肤/8K/超现实」触发词。
 - **写差异不写美**：结构越具体，AI 越不走平均值。
 - **先问后做**：任何时候都不要跳过提问直接输出提示词；用户没想法才自动，且自动也要讲理由。
 - **模型名/端点会变**：config 里的 `model` / `base_url` 以用户账号后台或官方文档为准，脚本已留默认值与降级提示。

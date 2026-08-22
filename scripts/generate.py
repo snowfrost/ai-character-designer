@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 ai-character-designer :: generate.py
-把「角色定义卡」渲染成 三模型（gpt-image-2 / 即梦5.0pro / flux2krea）标准的 中英双语提示词；
-若配置了接口（config.json + 环境变量），可直接出图：肖像 / 全身 / 三视。
+把「角色定义卡」渲染成 **gpt-image-2 标准**的中英双语提示词（中英分开，先中文三视图、再英文）；
+若配置了接口（config.json + 环境变量 OPENAI_API_KEY），可直接出图：肖像 / 全身 / 三视。
 
 交互流程（对话式捏脸，先问后做，没想法才自动）：
   第 0 步  开场：摸清用户有没有想法
@@ -11,7 +11,7 @@ ai-character-designer :: generate.py
   第 2 步  骨皮形神四问（大白话二选一）→ 骨(修/敦) 皮(浓/淡) 形(聚/散) 神(锐/柔)
   第 3 步  16 型定位确认（四维 → 阵营 → 类型名）
   第 4 步  面部结构捏脸（逐项定脸型/眉眼/鼻/唇/皮肤/发型，写差异不写美）
-  第 5 步  渲染三模型提示词
+  第 5 步  渲染 gpt-image-2 提示词（中英分开）
   第 5.5 步 用户确认提示词（必须！确认无误才出图；要改就回改角色卡重渲染）
 
 用法：
@@ -21,11 +21,11 @@ ai-character-designer :: generate.py
   # 自动模式（用户没想法，按职业/时代推导，仍会先问基本信息）
   python generate.py --auto
 
-  # 用角色卡生成（默认三模型 × 三视图）
+  # 用角色卡生成（默认三视图：肖像/全身/三视，中英双语）
   python generate.py --card character_card.json
 
-  # 只出指定模型/视图
-  python generate.py --card card.json --models jimeng_5_pro,flux2krea --views portrait,fullbody
+  # 只出指定视图
+  python generate.py --card card.json --views portrait,fullbody
 
   # 配置接口后直接出图（出图前会打印提示词摘要并确认）
   python generate.py --card card.json --generate --out ./out
@@ -390,11 +390,10 @@ def interactive_wizard(auto_mode=False):
 
 
 # ---------------------------------------------------------------------------
-# 4. 三模型提示词渲染
+# 4. gpt-image-2 提示词渲染
 # ---------------------------------------------------------------------------
-NEG_JIMENG = "过度磨皮、蜡像假面、面部畸变、多余配饰、闪光灯死白、畸形肢体"
-NEG_FLUX = "oversmoothed waxy skin, deformed, extra limbs, extra accessories, distorted face, plastic doll look"
 NEG_GPT_INLINE = "without over-smoothed waxy skin, without extra accessories, without deformity, without plastic-doll look"
+NEG_GPT_INLINE_ZH = "不要过度磨皮蜡像感，不要多余配饰，不要面部畸变"
 
 VIEW_ZH = {
     "portrait": "正面平视、均匀平光、干净纯色背景、聚焦面部特征（角色锚点图）",
@@ -464,40 +463,25 @@ def components(card):
 
 
 def render(card, view):
+    """渲染单个视图的 gpt-image-2 提示词：返回 {'zh': 中文, 'en': 英文}。"""
     c = components(card)
     if view not in VIEW_ZH:
         raise ValueError("view must be portrait/fullbody/threeview")
 
-    # --- 中文（共用骨架，三模型同义，按习惯微调）---
+    # 中文（gpt-image-2 可用的中文段落）
     zh_core = (f"{c['sub_zh']}，{c['bone_zh']}，{c['skin_zh']}，{c['shape_zh']}，{c['spirit_zh']}。"
                f"{c['face_zh']}。{c['body_zh']}。{c['out_zh']}。"
-               f"{c['el_zh']}。{VIEW_ZH[view]}。写实摄影质感、自然光、细节真实、保留皮肤肌理与血色。")
+               f"{c['el_zh']}。{VIEW_ZH[view]}。写实摄影质感、自然光、细节真实、保留皮肤肌理与血色。"
+               f"保持面部特征一致；{NEG_GPT_INLINE_ZH}。")
 
-    # --- gpt-image-2（英文段落，负向并入）---
+    # 英文（gpt-image-2 标准段落，负向并入正向句）
     gpt_en = (f"{c['sub_en']} with {c['bone_en']}, {c['skin_en']}, {c['shape_en']}, {c['spirit_en']}. "
               f"Face: {c['face_en']}. Body: {c['body_en']}. {c['out_en']}. "
               f"Expression & light: {c['el_en']}. {VIEW_EN[view]}. "
               f"Photorealistic, cinematic soft lighting, highly detailed, shallow depth of field. "
               f"Maintain consistent facial identity; {NEG_GPT_INLINE}.")
 
-    # --- 即梦5.0pro（中文条目 + 独立 negative）---
-    jimeng_zh = zh_core
-    jimeng_en = (f"{c['sub_en']}, {c['bone_en']}, {c['skin_en']}, {c['shape_en']}, {c['spirit_en']}. "
-                 f"{c['face_en']}. {c['body_en']}. {c['out_en']}. {c['el_en']}. {VIEW_EN[view]}. "
-                 f"realistic photography, natural light, fine detail, real skin texture.")
-
-    # --- flux2krea（英文标签，RAW 开头，独立 negative）---
-    flux_en = ("RAW, photorealistic, ultra-detailed, real skin texture, 8k, "
-               f"{c['sub_en']}, {c['bone_en']}, {c['skin_en']}, {c['shape_en']}, {c['spirit_en']}, "
-               f"{c['face_en']}, {c['body_en']}, {c['out_en']}, {c['el_en']}, {VIEW_EN[view]}, "
-               f"shallow depth of field, cinematic soft light")
-    flux_zh = zh_core
-
-    return {
-        "gpt_image_2": {"zh": zh_core, "en": gpt_en, "negative": None},
-        "jimeng_5_pro": {"zh": jimeng_zh, "en": jimeng_en, "negative": NEG_JIMENG},
-        "flux2_krea": {"zh": flux_zh, "en": flux_en, "negative": NEG_FLUX},
-    }
+    return {"zh": zh_core, "en": gpt_en}
 
 
 # ---------------------------------------------------------------------------
@@ -627,11 +611,6 @@ DEFAULT_CONFIG = {
     "gpt_image_2": {"base_url": "https://api.openai.com/v1", "api_key_env": "OPENAI_API_KEY",
                     "model": "gpt-image-2", "size_portrait": "1024x1024",
                     "size_fullbody": "1024x1536", "size_threeview": "1536x1024", "quality": "high"},
-    "jimeng_5_pro": {"base_url": "https://ark.cn-beijing.volces.com/api/v3", "api_key_env": "ARK_API_KEY",
-                     "model": "doubao-seedream-3-0-t2i-250715", "size_portrait": "1024x1024",
-                     "size_fullbody": "1024x1536", "size_threeview": "1344x768"},
-    "flux2_krea": {"base_url": "https://api.bfl.ai/v1", "api_key_env": "BFL_API_KEY",
-                   "model": "flux-krea-pro", "size_portrait": "1:1", "size_fullbody": "3:4", "size_threeview": "16:9"},
 }
 SIZE_KEY = {"portrait": "size_portrait", "fullbody": "size_fullbody", "threeview": "size_threeview"}
 
@@ -655,6 +634,7 @@ def load_config(explicit=None):
 
 
 def call_api(model_key, prompt_obj, view, out_dir, config):
+    """仅支持 gpt_image_2。prompt_obj 形如 {'zh':..., 'en':...}。"""
     try:
         import requests
     except ImportError:
@@ -667,19 +647,10 @@ def call_api(model_key, prompt_obj, view, out_dir, config):
         return None
     size = cfg.get(SIZE_KEY.get(view, "size_portrait"), "1024x1024")
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    size_param = {"size": size} if model_key != "flux2_krea" else {"aspect_ratio": size}
 
-    if model_key == "gpt_image_2":
-        url = f"{cfg['base_url'].rstrip('/')}/images/generations"
-        body = {"model": cfg["model"], "prompt": prompt_obj["en"],
-                "size": size, "quality": cfg.get("quality", "high"), "n": 1}
-    elif model_key == "jimeng_5_pro":
-        url = f"{cfg['base_url'].rstrip('/')}/images/generations"
-        body = {"model": cfg["model"], "prompt": prompt_obj["zh"],
-                "negative_prompt": prompt_obj["negative"], **size_param}
-    else:  # flux2_krea
-        url = f"{cfg['base_url'].rstrip('/')}/image/generations/{cfg['model']}"
-        body = {"prompt": prompt_obj["en"], "negative_prompt": prompt_obj["negative"], **size_param}
+    url = f"{cfg['base_url'].rstrip('/')}/images/generations"
+    body = {"model": cfg["model"], "prompt": prompt_obj["en"],
+            "size": size, "quality": cfg.get("quality", "high"), "n": 1}
 
     try:
         r = requests.post(url, headers=headers, json=body, timeout=120)
@@ -687,19 +658,9 @@ def call_api(model_key, prompt_obj, view, out_dir, config):
             print(f"  [接口错误] {model_key} {view}: HTTP {r.status_code} {r.text[:200]}")
             return None
         data = r.json()
-        # 适配多种返回：b64_json / url / 轮询 id
-        img_b64 = None
-        img_url = None
-        if model_key == "gpt_image_2":
-            item = (data.get("data") or [{}])[0]
-            img_b64 = item.get("b64_json")
-            img_url = item.get("url")
-        else:
-            img_url = data.get("url") or (data.get("data") or [{}])[0].get("url")
-            img_b64 = data.get("b64_json") or (data.get("data") or [{}])[0].get("b64_json")
-            task_id = data.get("id") or data.get("task_id")
-            if task_id and not (img_url or img_b64):
-                img_url = poll_bfl(requests, cfg, task_id)
+        item = (data.get("data") or [{}])[0]
+        img_b64 = item.get("b64_json")
+        img_url = item.get("url")
         if img_b64:
             fn = os.path.join(out_dir, f"{model_key}__{view}.png")
             with open(fn, "wb") as f:
@@ -720,34 +681,21 @@ def call_api(model_key, prompt_obj, view, out_dir, config):
         return None
 
 
-def poll_bfl(requests, cfg, task_id):
-    import time
-    url = f"{cfg['base_url'].rstrip('/')}/image/get/{task_id}"
-    headers = {"Authorization": f"Bearer {os.environ.get(cfg.get('api_key_env',''))}"}
-    for _ in range(30):
-        try:
-            r = requests.get(url, headers=headers, timeout=30)
-            d = r.json()
-            if d.get("status") == "Ready":
-                return d.get("result", {}).get("sample") or d.get("url")
-        except Exception:
-            pass
-        time.sleep(3)
-    return None
-
-
 # ---------------------------------------------------------------------------
 # 6. 主流程
 # ---------------------------------------------------------------------------
+VIEW_TITLE = {"portrait": "肖像", "fullbody": "全身", "threeview": "三视"}
+VIEW_TITLE_EN = {"portrait": "Portrait", "fullbody": "Full-body", "threeview": "Three-view"}
+
+
 def main():
-    ap = argparse.ArgumentParser(description="AI 角色打造提示词生成器（三模型标准）")
+    ap = argparse.ArgumentParser(description="AI 角色打造提示词生成器（gpt-image-2 标准，中英双语）")
     ap.add_argument("--card", help="角色卡 JSON 路径（有则跳过交互向导）")
     ap.add_argument("--auto", action="store_true",
                     help="自动模式：用户没想法，按基本信息推导骨皮形神（仍会先问基本信息）")
     ap.add_argument("--desc", help="自由描述（暂仅作备注，建议用 --card 或交互向导）")
-    ap.add_argument("--models", default="gpt_image_2,jimeng_5_pro,flux2_krea",
-                    help="模型列表，逗号分隔")
-    ap.add_argument("--views", default="portrait,fullbody,threeview", help="视图列表")
+    ap.add_argument("--views", default="portrait,fullbody,threeview",
+                    help="视图列表，逗号分隔：portrait,fullbody,threeview")
     ap.add_argument("--generate", action="store_true", help="配置接口后直接出图（出图前会再次确认）")
     ap.add_argument("--yes", action="store_true", help="配合 --generate：跳过出图前确认（自动化用）")
     ap.add_argument("--out", default="./character_output", help="输出目录")
@@ -759,7 +707,6 @@ def main():
     else:
         card = interactive_wizard(auto_mode=args.auto)
 
-    models = [m.strip() for m in args.models.split(",") if m.strip()]
     views = [v.strip() for v in args.views.split(",") if v.strip()]
     os.makedirs(args.out, exist_ok=True)
 
@@ -774,26 +721,30 @@ def main():
 
     results = {}
     for view in views:
-        results[view] = render(card, view)
+        results[view] = render(card, view)   # {'zh':..., 'en':...}
 
-    # 写提示词（JSON + MD）
+    # 写提示词（JSON + MD）：先中文（肖像/全身/三视），再英文
     with open(os.path.join(args.out, "prompts.json"), "w", encoding="utf-8") as f:
         json.dump({"card": card, "prompts": results,
                    "checklist": checklist_section(card)}, f, ensure_ascii=False, indent=2)
 
-    md = [f"# 角色提示词 · {card.get('name','未命名')}", "",
+    md = [f"# 角色提示词 · {card.get('name','未命名')}（gpt-image-2）", "",
           "## 角色定义卡", "```json",
           json.dumps(card, ensure_ascii=False, indent=2), "```", ""]
+
+    # 中文块
+    md.append("## 中文提示词")
     for view in views:
-        md.append(f"## 视图：{view}")
-        for mk in models:
-            p = results[view][mk]
-            md.append(f"### {mk}")
-            md.append(f"- **中文**：{p['zh']}")
-            md.append(f"- **English**：{p['en']}")
-            if p["negative"]:
-                md.append(f"- **negative**：{p['negative']}")
-            md.append("")
+        md.append(f"### {VIEW_TITLE.get(view, view)}")
+        md.append(results[view]["zh"])
+        md.append("")
+    # 英文块
+    md.append("## English Prompts")
+    for view in views:
+        md.append(f"### {VIEW_TITLE_EN.get(view, view)}")
+        md.append(results[view]["en"])
+        md.append("")
+
     md.append(checklist_section(card))
     with open(os.path.join(args.out, "prompts.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(md))
@@ -805,12 +756,11 @@ def main():
         config = load_config(args.config)
         # 出图前必须确认：打印提示词摘要 + 询问
         print("\n" + "=" * 60)
-        print("[出图前确认] 将按以下提示词调用接口（模型 × 视图）：")
+        print("[出图前确认] 将按以下提示词调用 gpt-image-2（视图 × 中英）：")
         for view in views:
-            for mk in models:
-                p = results[view][mk]
-                print(f"  · {mk} / {view}")
-                print(f"    中文：{p['zh'][:90]}{'…' if len(p['zh'])>90 else ''}")
+            p = results[view]
+            print(f"  · {VIEW_TITLE.get(view, view)} / {VIEW_TITLE_EN.get(view, view)}")
+            print(f"    中文：{p['zh'][:90]}{'…' if len(p['zh'])>90 else ''}")
         print("=" * 60)
         if args.yes:
             ok = True
@@ -826,9 +776,8 @@ def main():
             return
         print("[出图模式] 调用已配置接口…")
         for view in views:
-            for mk in models:
-                print(f"-> {mk} / {view}")
-                call_api(mk, results[view][mk], view, args.out, config)
+            print(f"-> gpt_image_2 / {view}")
+            call_api("gpt_image_2", results[view], view, args.out, config)
 
 
 if __name__ == "__main__":
