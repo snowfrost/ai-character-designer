@@ -1,9 +1,12 @@
 {
   "name": "角色代号（如 云舒 / #主角_李明）",
   "subject": {
-    "age": "25",
     "gender": "女",
-    "ethnicity": "东方"
+    "age": "25",
+    "ethnicity": "东方",
+    "occupation": "画家",
+    "era": "民国",
+    "personality": "外冷内热的独立女性"
   },
   "bone_skin_shape_spirit": {
     "骨": "修",
@@ -12,6 +15,7 @@
     "神": "柔"
   },
   "camp": "抚慰者",
+  "type16": "恬静治愈",
   "face": {
     "face_shape": "鹅蛋脸（偏圆）",
     "brows_eyes": "眉平、眼型上三下二、内眼角略低、眶周折叠度中",

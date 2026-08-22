@@ -1,6 +1,6 @@
 ---
 name: ai-character-designer
-description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs prompts tuned for three image models: gpt-image-2 (OpenAI), 即梦5.0pro (ByteDance Seedream), and flux2krea (FLUX.2 Krea). If an API is configured, it can directly generate portrait, full-body, and three-view images. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, or any mention of 骨皮形神 / 麦橘 / 即梦 / flux krea / gpt-image prompts."
+description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs prompts tuned for three image models: gpt-image-2 (OpenAI), 即梦5.0pro (ByteDance Seedream), and flux2krea (FLUX.2 Krea). If an API is configured, it can directly generate portrait, full-body, and three-view images. The skill ALWAYS interviews the user first (性别/年龄/国籍/身份职业/时代服装 → 骨皮形神四问 → 16型定位 → 面部结构), and only auto-generates when the user has no idea. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, or any mention of 骨皮形神 / 麦橘 / 即梦 / flux krea / gpt-image prompts."
 agent_created: true
 ---
 
@@ -18,6 +18,12 @@ agent_created: true
 - 用户要做角色资产化：标准照锚点、全身、四视图、视频一致性。
 - 用户抱怨「AI 脸千人一面 / 蜡像假面 / 换脸漂移」需要解法。
 
+## 铁律：先问，后做；用户没想法才自动
+
+> 本 Skill 是「对话式捏脸」流程，**不允许跳过提问直接输出提示词**。
+> 每一步都先用大白话向用户提问，拿到答案后再进入下一步；只有用户明确表示
+> 「没想法 / 你定 / 随便」时，才走「自动模式」替用户选，并把选择理由讲清楚。
+
 ## 方法论总览（执行前先读 references）
 
 1. **`references/theory.md`** — 骨皮形神 16 型（四问定脸）、审美资产化、麦橘循环论、阵营速查。
@@ -26,44 +32,140 @@ agent_created: true
 4. **`references/prompt_standards.md`** — **核心**：三模型提示词习惯对照、骨皮形神→特征词库、装配顺序、API 配置（config.json 结构）。
 5. **`references/academic.md`** — 三庭五眼/折叠度/黄金比 + 3 篇论文（解释「AI 脸=当代平均脸」与「结构>对称」）。
 
-## 执行流程
+---
 
-### 步骤 1：定角色（骨皮形神四问）
-向用户提四个问题，或读用户给的角色卡：灵动/沉稳？抓眼/耐看？聚焦/松弛？疏远/亲近？
-落点 → 骨(修/敦) 皮(浓/淡) 形(聚/散) 神(锐/柔)，并确定四大阵营之一。
-若用户已有详细描述，直接填 `assets/character_card_template.json`。
+## 执行流程（对话式，一步一步来）
 
-### 步骤 2：补结构差异（反平均脸的关键）
-按 `engineering.md` §3 / `aesthetics.md` 检查清单，把脸型/眉眼/鼻/唇/皮肤/发型写成
-**具体差异**，而非「美/精致」。加不完美细节（毛孔/雀斑/单眼皮/高颧骨）破蜡像感。
+### 第 0 步：开场 + 摸清用户有没有想法
 
-### 步骤 3：生成提示词（调用脚本）
-用 `scripts/generate.py` 渲染三模型中英双语提示词（肖像/全身/三视）：
+先问一句，确认用户手上有什么：
+
+> 「你想做一个什么样的角色？可以先说说你的想法（身份、性格、大概长相），
+> 如果没有头绪也没关系，我会一步步带你定位，最后生成提示词。」
+
+- 用户给了描述 → 走 **正常流程**，把用户描述填进各步骤。
+- 用户说「没想法 / 你定 / 随便」 → 走 **自动模式**（见第 6 步），但依然要问完「基本信息」再自动。
+
+### 第 1 步：角色基本信息（先做人，再捏脸）
+
+按顺序逐项问，每项拿到答案再问下一项。**提问用大白话，选项给全**。
+
+| # | 问题（大白话） | 选项 / 示例 | 对应卡字段 |
+|---|---|---|---|
+| 1 | 是男生还是女生？ | 男 / 女（**必须选，男女分开设计**） | `subject.gender` |
+| 2 | 大概多大年纪？ | 少年 / 青年 / 熟龄 / 中年 / 老年，或直接给具体年龄如 25 | `subject.age` |
+| 3 | 是哪个国家/族裔的长相？ | 东方（中国/日韩）/ 欧美 / 中东 / 拉美 / 混血 / 东南亚 | `subject.ethnicity` |
+| 4 | 是什么身份 / 职业？ | 学生 / 医生 / 总裁 / 将军 / 侠客 / 侦探 / 爱豆 / 画家… | `subject.occupation` |
+| 5 | 古装还是时装？（时代/世界观） | 古装（汉唐宋明清/武侠）/ 民国 / 现代都市 / 未来科幻 / 架空奇幻 / 日常 | `subject.era` |
+| 6 | 性格 / 气质一句话？（可选） | 例如「外冷内热的独行侠」 | `subject.personality` |
+
+> 为什么先问这些：麦橘强调「**角色小传驱动**」——先定「25岁、短发酷飒、穿父亲旧飞行员夹克的独立女性」，再据此落脸。身份、时代、职业直接决定后面的骨皮形神倾向与穿搭方向，也让生成的脸有「故事感」而非随机美人。
+
+### 第 2 步：骨皮形神四问（捏脸定位，麦橘原版四问）
+
+基于第 1 步信息，再用**大白话四问**定位骨皮形神。每个问题二选一，向用户**列出两个选项的含义**，让用户凭直觉选。用户说「没想法」就记作该维度「自动」。
+
+| 四问（大白话） | 选项 A | 选项 B | 落点 |
+|---|---|---|---|
+| 骨：整体气质是「灵动轻盈」还是「沉稳敦厚」？ | 灵动/脱俗 | 沉稳/权威 | 骨：修 / 敦 |
+| 皮：长相是「第一眼抓眼」还是「耐看舒服」？ | 抓眼/浓烈 | 耐看/清淡 | 皮：浓 / 淡 |
+| 形：五官是「紧凑聚焦」还是「舒展松弛」？ | 紧凑/缜密 | 舒展/亲和 | 形：聚 / 散 |
+| 神：气质是「冷冽疏离」还是「温柔亲近」？ | 冷冽/有距离 | 温柔/治愈 | 神：锐 / 柔 |
+
+> 麦橘辅助破局法：若用户「又想抓眼又想耐看」卡住，改用更简单的二选一：
+> **「五官要立体还是小巧？要浓妆还是淡抹？」**——这种不难答的问题基本就能锁定。
+>
+> 用户只想选风格名而不想回答抽象问题也可以：直接问「你想要哪种感觉？」
+> 列四大阵营名（凌越者 / 造梦者 / 洞察者 / 抚慰者）让其挑，再反推四维。
+
+### 第 3 步：16 型定位确认（把四问翻译成「一个类型」）
+
+把第 2 步的四维落点合成 16 型，讲给用户听并请确认：
+
+```
+骨-皮-形-神 = 修-浓-散-锐  →  凌越者 · 冷艳前卫
+```
+
+- **16 格速查表**（皮×神 定阵营，骨×形 定细格）：
+
+| 阵营（皮×神） | 修-聚 | 修-散 | 敦-聚 | 敦-散 |
+|---|---|---|---|---|
+| 凌越者（浓×锐） | 犀利精英 | 冷艳前卫 | 威严强势 | 庄重豪迈 |
+| 造梦者（浓×柔） | 惊艳风情 | 浪漫亲和 | 活力热烈 | 丰盈柔媚 |
+| 洞察者（淡×锐） | 精密理智 | 清冷极简 | 严谨秩序 | 坚韧简约 |
+| 抚慰者（淡×柔） | 纯净温婉 | 恬静治愈 | 亲切朴实 | 温和敦厚 |
+
+- 向用户确认：这个「类型名」符合想要的感觉吗？不符合 → 回到第 2 步调整对应维度。
+
+### 第 4 步：面部结构捏脸（写差异，不写「美」）
+
+这一步是**真正的「捏脸」**。基于 16 型给出**默认面部结构建议**，然后逐项问用户是否修改：
+
+| 部位 | 默认建议来源 | 让用户改什么（大白话） |
+|---|---|---|
+| 脸型 | 骨（修→鹅蛋/瓜子，敦→方圆/方） | 圆一点/方一点/瓜子？ |
+| 眉眼 | 神（锐→细长上挑，柔→圆润下垂）+ 皮 | 单眼皮还是双眼皮？眼睛大/小？眉形？ |
+| 鼻子 | 骨 + 形 | 鼻梁高/低？鼻翼宽/窄？鼻头圆/翘？ |
+| 嘴唇 | 神（柔→饱满，锐→偏薄） | 厚唇/薄唇？唇峰明显吗？ |
+| 皮肤 | 皮（浓→白皙亮泽，淡→自然肌理）+ 族裔 | 冷白/暖白/小麦？要不要雀斑/毛孔？ |
+| 发型 | 时代 + 职业 + 性格 | 长短、直卷、颜色、刘海？ |
+
+> 关键：**每个部位都要写「具体差异」而非「美/精致」**。加 1–2 个不完美细节
+> （毛孔、雀斑、单眼皮、高颧骨、法令纹…）破蜡像感（见 `aesthetics.md` §7 检查清单）。
+> 用户没想法的部位用默认建议，但要在最终卡里标注「默认」。
+
+### 第 5 步：生成提示词（此时才输出！）
+
+所有信息收齐后，用脚本渲染三模型中英双语提示词（肖像/全身/三视）。**脚本会自动做两步审核：**
+
+1. **角色卡比例审核（`validate_card`）**：按 PPT 比例规则检查角色卡——
+   头身比（女约 7 头、男约 7.5 头，网感可到 9，超 9 显怪）、肩宽（≤3 头合理，≥4 头离谱）、
+   坐姿 5–5.5 / 蹲姿 3.5–4 头身，以及皮肤是否含「完美皮肤/8K/无瑕」类反蜡像触发词。
+   不合理会在终端输出 `[审核]` 警告，提示回改角色卡。
+2. **出图检查清单（`checklist_section`）**：在 `prompts.md` 末尾自动附上完整
+   「出图检查清单」——人物比例规则 + 面部硬规则（三庭五眼/额/眼/鼻/唇/E线/下颌角/颏颈角/
+   折叠度/四角/皮相/浓淡/妆容重心）逐项打勾 + 反蜡像自查。
+
 ```bash
-# 交互四问向导
-python <skill>/scripts/generate.py
-
-# 用角色卡（默认三模型 × 三视图）
+# 交互向导（把上面收集到的答案喂进去）
 python <skill>/scripts/generate.py --card character_card.json --out ./out
 
-# 指定模型/视图
+# 或把第 1~4 步结果整理成角色卡 JSON 后：
 python <skill>/scripts/generate.py --card card.json \
-    --models jimeng_5_pro,flux2_krea --views portrait,fullbody
+    --models gpt_image_2,jimeng_5_pro,flux2_krea --views portrait,fullbody,threeview
 ```
-输出 `./out/prompts.md`（可读）与 `./out/prompts.json`（结构化）。
 
-### 步骤 4：配置接口直出图（可选）
-若用户要直接出图，让其提供 config.json + 环境变量（结构见 `prompt_standards.md` §3）：
-- `gpt_image_2`：OpenAI，env `OPENAI_API_KEY`
-- `jimeng_5_pro`：火山方舟 Seedream，env `ARK_API_KEY`
-- `flux2_krea`：BFL FLUX.2 Krea，env `BFL_API_KEY`
-然后：
+输出 `./out/prompts.md`（可读提示词 + 末尾附出图检查清单）与 `./out/prompts.json`（结构化）。
+
+**出图后（直出图或用户自己跑图）**：把图对照 `prompts.md` 末尾的检查清单逐项核验——
+头身比是否对、肩宽是否离谱、三庭五眼是否成立、有没有蜡像感。检查不过就回改角色卡对应字段
+重新渲染，或出图后 PS 微调（见 `engineering.md` §8 出图—修图工作流）。
+
+**配置接口直出图（可选）**：让用户提供 config.json + 环境变量
+（`gpt_image_2`→`OPENAI_API_KEY`；`jimeng_5_pro`→`ARK_API_KEY`；`flux2_krea`→`BFL_API_KEY`）：
 ```bash
 python <skill>/scripts/generate.py --card card.json --generate --out ./out
 ```
-脚本按视图调用各模型接口，存 `模型__视图.png`。未配置则跳过、只给提示词。
 
-### 步骤 5：资产化与一致性（视频/系列图）
+### 第 6 步：自动模式（用户没想法时）
+
+只有用户明确「没想法 / 你定 / 随便」时进入。流程：
+
+1. **基本信息仍问完**：至少问性别、年龄段、身份职业、时代服装（第 1 步）。
+2. **自动定位骨皮形神**：依据身份/职业/时代推导合理默认（示例）：
+   - 古装将军 → 敦·浓·聚·锐（威严强势）
+   - 都市总裁 → 敦·浓·聚·锐 或 敦·淡·聚·锐（严谨秩序）
+   - 侠客/侦探 → 修·浓·散·锐（冷艳前卫）
+   - 温柔护士/幼师 → 修·淡·散·柔（恬静治愈）
+   - 爱豆/元气少女 → 修·浓·散·柔（浪漫亲和）
+   - 不确定 → 随机选一个 16 型，并说明其气质画像
+3. **讲理由**：告诉用户「按你的设定，我选了 X 类型，因为它 Y」。请用户确认或换一个。
+4. 确认后 → 面部结构用该 16 型默认值 → 第 5 步生成。
+
+---
+
+## 资产化与一致性（视频/系列图，选做）
+
 - 先做**标准照**（白底/均匀光/正面）作锚点；再出全身、四视图。
 - 后期变装写明**身份锁**（不可改：五官/脸型/身材/发色；可改：衣服/场景/配饰）。
 - 分镜强制带角色标签 + 表情语法（见 `engineering.md` §6）。
@@ -72,5 +174,6 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
 
 - **反蜡像铁律**：每条提示词保留皮肤肌理与血色，避「完美皮肤/8K/超现实」触发词（尤其即梦/FLUX）。
 - **写差异不写美**：结构越具体，AI 越不走平均值。
+- **先问后做**：任何时候都不要跳过提问直接输出提示词；用户没想法才自动，且自动也要讲理由。
 - **模型名/端点会变**：config 里的 `model` / `base_url` 以用户账号后台或官方文档为准，脚本已留默认值与降级提示。
 - **学术背书**：用 `academic.md` 的 Bernal 2024 等论文解释「为何要拆结构写差异」，增强说服力。
