@@ -25,10 +25,11 @@ ai-character-designer/
 ├── assets/
 │   └── character_card_template.json      # 角色卡模板（四问落点 → 结构化字段）
 ├── references/
-│   ├── theory.md                         # 骨皮形神 16 型、审美资产化、阵营速查
-│   ├── aesthetics.md                     # 人体比例/头骨/三庭五眼/折叠度/妆容 + 出图检查清单
+│   ├── theory.md                         # 骨皮形神 16 型、三层推导/家族矩阵、审美资产化、阵营速查
+│   ├── aesthetics.md                     # 肌肉/人体比例/头骨/三庭五眼/折叠度/颧颌夹角/阔窄面/妆容 + 检查清单
 │   ├── engineering.md                    # 工程化流程：标准照→锁脸→全身→四视图→一致性
 │   ├── prompt_standards.md               # ★核心：三模型提示词对照、特征词库、API 配置
+│   ├── prompt_craft.md                   # 写词手艺：小红书结构化写法/糖系/三要素 + 麦橘五要素/权重/规避层
 │   └── academic.md                       # 三庭五眼/折叠度/黄金比 + 3 篇论文
 └── scripts/
     └── generate.py                       # 渲染三模型中英双语提示词 + 可选直出图

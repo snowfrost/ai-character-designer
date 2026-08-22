@@ -27,10 +27,11 @@ agent_created: true
 ## 方法论总览（执行前先读 references）
 
 1. **`references/theory.md`** — 骨皮形神 16 型（四问定脸）、审美资产化、麦橘循环论、阵营速查。
-2. **`references/aesthetics.md`** — ima《AI美人指南》PPT 深度拆解（人体比例/头骨/三庭五眼/眼/鼻唇/侧脸折叠度/妆容）+ 出图检查清单。
+2. **`references/aesthetics.md`** — ima《AI美人指南》PPT 深度拆解（肌肉/肩颈/人体比例/头骨/三庭五眼/眼/鼻唇/侧脸折叠度/颧颌夹角/阔窄面/妆容）+ 出图检查清单。
 3. **`references/engineering.md`** — 刺猬星球工程化流程：标准照→锁脸→全身→四视图→拆结构写差异→身份锁→一致性三招 + 原文全身/四视图模板。
 4. **`references/prompt_standards.md`** — **核心**：三模型提示词习惯对照、骨皮形神→特征词库、装配顺序、API 配置（config.json 结构）。
-5. **`references/academic.md`** — 三庭五眼/折叠度/黄金比 + 3 篇论文（解释「AI 脸=当代平均脸」与「结构>对称」）。
+5. **`references/prompt_craft.md`** — 写词手艺：小红书结构化提示词高级写法/万能模板/糖系流水线/三要素法/拒完美加肌理 + 麦橘五要素/权重语法/规避层三类翻车/表演大白话/角色小传驱动。
+6. **`references/academic.md`** — 三庭五眼/折叠度/黄金比 + 3 篇论文（解释「AI 脸=当代平均脸」与「结构>对称」）。
 
 ---
 
