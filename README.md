@@ -18,10 +18,12 @@
 
 ## 目录结构
 
+本仓库根目录即 Skill 根目录（无多余嵌套层）：
+
 ```
-ai-character-designer/
+./
 ├── SKILL.md                              # 技能主文件（触发条件 + 执行流程）
-├── README.md                             # 本文件
+├── README.md                             # 本文件（仓库主页展示）
 ├── assets/
 │   └── character_card_template.json      # 角色卡模板（四问落点 → 结构化字段）
 ├── references/
@@ -32,7 +34,7 @@ ai-character-designer/
 │   ├── prompt_craft.md                   # 写词手艺：小红书结构化写法/糖系/三要素 + 麦橘五要素/权重/规避层
 │   └── academic.md                       # 三庭五眼/折叠度/黄金比 + 3 篇论文
 └── scripts/
-    └── generate.py                       # 渲染三模型中英双语提示词 + 可选直出图
+    └── generate.py                       # 渲染三模型中英双语提示词 + 可选直出图 + 审核/检查清单
 ```
 
 ---
@@ -172,3 +174,15 @@ python scripts/generate.py --card card.json --generate --out ./out
 ## License
 
 本 Skill 用于角色设计研究与出图实践，遵循对应出图平台的 API 服务条款使用。
+
+---
+
+## 更新记录
+
+> 每次推送 GitHub 都会在此追加一条记录（日期 + 版本 + 变更说明）。
+
+- **2026-08-22 · v1.4** — 目录结构扁平化：skill 内容移入仓库根目录，README 在主页直接展示；新增本「更新记录」章节。
+- **2026-08-22 · v1.3** — 补录材料覆盖缺口：新增 `references/prompt_craft.md`（小红书实战 + 麦橘提示词工程）；`aesthetics.md` 补肌肉/肩颈气质、颧颌夹角、阔面 vs 窄面脸；`theory.md` 补三层推导/家族矩阵并统一 16 型命名；`generate.py` 检查清单同步增补。
+- **2026-08-22 · v1.2** — 加入出图审核：`generate.py` 新增 `validate_card` 比例审核（头身比/肩宽/反蜡像触发词）+ `checklist_section` 出图检查清单，随 `prompts.md` 输出。
+- **2026-08-22 · v1.1** — 重构为对话式捏脸流程：先问角色想法（性别/年龄/国籍/身份职业/时代/性格）→ 骨皮形神四问 → 16 型定位确认 → 面部结构捏脸 → 才生成提示词；用户没想法走自动模式（`--auto`）。角色卡模板增补 subject 字段。
+- **2026-08-22 · v1.0** — 初始发布：骨架 + 四维词库 + 三模型提示词渲染。
