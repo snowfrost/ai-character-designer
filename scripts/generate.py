@@ -12,6 +12,7 @@ ai-character-designer :: generate.py
   第 3 步  16 型定位确认（四维 → 阵营 → 类型名）
   第 4 步  面部结构捏脸（逐项定脸型/眉眼/鼻/唇/皮肤/发型，写差异不写美）
   第 5 步  渲染三模型提示词
+  第 5.5 步 用户确认提示词（必须！确认无误才出图；要改就回改角色卡重渲染）
 
 用法：
   # 交互向导（推荐）
@@ -26,8 +27,11 @@ ai-character-designer :: generate.py
   # 只出指定模型/视图
   python generate.py --card card.json --models jimeng_5_pro,flux2krea --views portrait,fullbody
 
-  # 配置接口后直接出图
+  # 配置接口后直接出图（出图前会打印提示词摘要并确认）
   python generate.py --card card.json --generate --out ./out
+
+  # 跳过出图前确认（自动化/CI 用）
+  python generate.py --card card.json --generate --yes --out ./out
 
 配置：当前目录或脚本目录下的 config.json（见 references/prompt_standards.md §3）。
 """
@@ -744,7 +748,8 @@ def main():
     ap.add_argument("--models", default="gpt_image_2,jimeng_5_pro,flux2_krea",
                     help="模型列表，逗号分隔")
     ap.add_argument("--views", default="portrait,fullbody,threeview", help="视图列表")
-    ap.add_argument("--generate", action="store_true", help="配置接口后直接出图")
+    ap.add_argument("--generate", action="store_true", help="配置接口后直接出图（出图前会再次确认）")
+    ap.add_argument("--yes", action="store_true", help="配合 --generate：跳过出图前确认（自动化用）")
     ap.add_argument("--out", default="./character_output", help="输出目录")
     ap.add_argument("--config", help="config.json 路径")
     args = ap.parse_args()
@@ -798,6 +803,27 @@ def main():
 
     if args.generate:
         config = load_config(args.config)
+        # 出图前必须确认：打印提示词摘要 + 询问
+        print("\n" + "=" * 60)
+        print("[出图前确认] 将按以下提示词调用接口（模型 × 视图）：")
+        for view in views:
+            for mk in models:
+                p = results[view][mk]
+                print(f"  · {mk} / {view}")
+                print(f"    中文：{p['zh'][:90]}{'…' if len(p['zh'])>90 else ''}")
+        print("=" * 60)
+        if args.yes:
+            ok = True
+            print("[出图] --yes 已指定，跳过确认，开始出图。")
+        else:
+            try:
+                ans = input("\n确认无误，开始出图？(回车=确认 / 输入 n 取消) > ").strip().lower()
+            except EOFError:
+                ans = ""
+            ok = ans in ("", "y", "yes")
+        if not ok:
+            print("[取消] 未开始出图。请先修改角色卡或提示词后重跑。")
+            return
         print("[出图模式] 调用已配置接口…")
         for view in views:
             for mk in models:
