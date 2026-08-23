@@ -1,6 +1,6 @@
 ---
 name: ai-character-designer
-description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts in gpt-image-2 (OpenAI) format. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs bilingual prompts (中文三视图 + English three views). If an API is configured (OPENAI_API_KEY), it can directly generate portrait, full-body, and three-view images. The skill ALWAYS interviews the user first (性别/年龄/国籍/身份职业/时代服装 → 骨皮形神四问 → 16型定位 → 面部结构), shows the full prompts for confirmation, and only auto-generates when the user has no idea. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, or any mention of 骨皮形神 / 麦橘 / gpt-image prompts."
+description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts in gpt-image-2 (OpenAI) format. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs bilingual prompts (中文三视图 + English three views). It also distinguishes two opposite style routes: 真实感/生活感 (realism, retaining pores/asymmetry/noise) vs 精致/完美写真 (refined, polished flawless studio look). If an API is configured (OPENAI_API_KEY), it can directly generate portrait, full-body, and three-view images. The skill ALWAYS interviews the user first (性别/年龄/国籍/身份职业/时代服装 → 风格路线 → 骨皮形神四问 → 16型定位 → 面部结构), shows the full prompts for confirmation, and only auto-generates when the user has no idea. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, 真实感人像/更真实, 精致写真/完美写真, or any mention of 骨皮形神 / 麦橘 / gpt-image prompts."
 agent_created: true
 ---
 
@@ -31,7 +31,8 @@ agent_created: true
 3. **`references/engineering.md`** — 刺猬星球工程化流程：标准照→锁脸→全身→四视图→拆结构写差异→身份锁→一致性三招 + 原文全身/四视图模板。
 4. **`references/prompt_standards.md`** — **核心**：gpt-image-2 提示词标准、骨皮形神→特征词库、装配顺序、API 配置（config.json 结构）。
 5. **`references/prompt_craft.md`** — 写词手艺：小红书结构化提示词高级写法/万能模板/糖系流水线/三要素法/拒完美加肌理 + 麦橘五要素/权重语法/规避层三类翻车/表演大白话/角色小传驱动。
-6. **`references/academic.md`** — 三庭五眼/折叠度/黄金比 + 3 篇论文（解释「AI 脸=当代平均脸」与「结构>对称」）。
+6. **`references/realism_vs_refined.md`** — **风格路线分野（新增）**：真实感路线（20 条人像真实化要点）vs 精致完美写真路线（15 组女主角气质库 + 大象学长写真/三视图/换脸），两条路线用词相反，必须按用户意图切换。
+7. **`references/academic.md`** — 三庭五眼/折叠度/黄金比 + 3 篇论文（解释「AI 脸=当代平均脸」与「结构>对称」）。
 
 ---
 
@@ -61,6 +62,21 @@ agent_created: true
 | 6 | 性格 / 气质一句话？（可选） | 例如「外冷内热的独行侠」 | `subject.personality` |
 
 > 为什么先问这些：麦橘强调「**角色小传驱动**」——先定「25岁、短发酷飒、穿父亲旧飞行员夹克的独立女性」，再据此落脸。身份、时代、职业直接决定后面的骨皮形神倾向与穿搭方向，也让生成的脸有「故事感」而非随机美人。
+
+### 第 1.5 步：风格路线（真实感 vs 精致写真，必问！）
+
+这一步决定提示词的**收尾基调**，两条路线**方向相反**，用错会让结果完全跑偏（详见 `realism_vs_refined.md`）：
+
+> 「最终想要哪种质感？」
+> 1. **真实感 / 生活感** —— 像手机随手拍、素人氛围、保留瑕疵（毛孔/碎发/自然不对称/轻微噪点）
+> 2. **精致 / 完美写真** —— 影棚杂志感、高级精致、允许完美皮肤和精致妆容
+> 3. **标准**（默认）—— 反蜡像但不刻意偏哪边
+
+- 用户说「真实感 / 更真实 / 像真人 / 生活照 / 素人」→ 走 **realism**：用《AI 人像真实化 20 条》收尾词（优先 ①⑯⑳ 三条）。
+- 用户说「精致 / 完美 / 写真 / 杂志感 / 女神 / 唯美」→ 走 **refined**：用影棚杂志级收尾词，**允许完美皮肤，负面词反转为「不要素人感/不要粗糙/不要瑕疵」**。
+- 没明确 → 走 **standard**。
+
+> ⚠️ 关键：之前的 skill 只有「反蜡像」一套默认策略（站真实感路线）。用户要「精致写真」时，这套反蜡像词是**错的**——必须按第 1.5 步切换。存角色卡 `style` 字段（`realism` / `refined` / `standard`）。
 
 ### 第 2 步：骨皮形神四问（捏脸定位，麦橘原版四问）
 

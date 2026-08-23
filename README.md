@@ -32,6 +32,7 @@ GitHub 仓库根目录即 Skill 根目录（无多余嵌套层）：
 │   ├── engineering.md                    # 工程化流程：标准照→锁脸→全身→四视图→一致性
 │   ├── prompt_standards.md               # ★核心：gpt-image-2 提示词标准、特征词库、API 配置
 │   ├── prompt_craft.md                   # 写词手艺：小红书结构化写法/糖系/三要素 + 麦橘五要素/权重/规避层
+│   ├── realism_vs_refined.md             # 风格路线：真实感 vs 精致写真（两条相反路线）
 │   └── academic.md                       # 三庭五眼/折叠度/黄金比 + 3 篇论文
 └── scripts/
     └── generate.py                       # 渲染 gpt-image-2 中英双语提示词 + 可选直出图 + 审核/检查清单
@@ -59,6 +60,18 @@ GitHub 仓库根目录即 Skill 根目录（无多余嵌套层）：
 | 4 | 身份/职业？ | 医生/总裁/侠客/爱豆… | `subject.occupation` |
 | 5 | 古装还是时装？ | 古装/民国/现代/未来/架空/日常 | `subject.era` |
 | 6 | 性格一句话？（可选） | 「外冷内热」 | `subject.personality` |
+
+### 2.5 风格路线（真实感 vs 精致写真，必问）
+
+两条路线**方向相反**，用错会跑偏：
+
+| 用户要什么 | 路线 | 收尾词基调 |
+|---|---|---|
+| 真实感 / 更真实 / 生活照 / 素人 | `realism` | 保留毛孔/碎发/自然不对称/轻微噪点，拒绝 CG 塑料感 |
+| 精致 / 完美 / 写真 / 杂志感 | `refined` | 影棚杂志级、允许完美皮肤、精致妆容，拒绝素人感/粗糙 |
+| 没明确 | `standard` | 反蜡像但不刻意偏哪边 |
+
+存角色卡 `style` 字段。详见 [`references/realism_vs_refined.md`](references/realism_vs_refined.md)。
 
 ### 3. 骨皮形神四问（捏脸定位，麦橘原版大白话）
 
@@ -182,6 +195,7 @@ python scripts/generate.py --card card.json --generate --out ./out
 
 > 每次推送 GitHub 都会在此追加一条记录（日期 + 版本 + 变更说明）。
 
+- **2026-08-23 · v1.7** — 新增「风格路线」分野：真实感(realism) vs 精致写真(refined) vs 标准(standard)。回顾 ima「提示词工程」知识库生图/人像部分，新增 `references/realism_vs_refined.md`（20 条人像真实化要点 + 15 组女主角气质库 + 大象学长写真/三视图/换脸）。`generate.py` 交互向导加第 1.5 步风格路线提问，`render` 按 style 切换收尾词与负向词（精致路线不再反磨皮）。
 - **2026-08-22 · v1.6** — 提示词简化为 gpt-image-2 单格式：移除即梦/flux；中英分开，先中文（肖像/全身/三视）再英文（三视图）；`prompts.md`/`prompts.json` 结构同步调整，API 仅保留 OpenAI。
 - **2026-08-22 · v1.5** — 新增「用户确认提示词」环节：生成后先把完整提示词（中英/三视图）展示给用户确认，确认无误才出图；`generate.py --generate` 出图前打印提示词摘要并询问（`--yes` 跳过，自动化用）。
 - **2026-08-22 · v1.4** — 目录结构扁平化：skill 内容移入仓库根目录，README 在主页直接展示；新增本「更新记录」章节。

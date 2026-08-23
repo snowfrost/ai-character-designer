@@ -16,6 +16,7 @@
   },
   "camp": "抚慰者",
   "type16": "恬静治愈",
+  "style": "standard",
   "face": {
     "face_shape": "鹅蛋脸（偏圆）",
     "brows_eyes": "眉平、眼型上三下二、内眼角略低、眶周折叠度中",

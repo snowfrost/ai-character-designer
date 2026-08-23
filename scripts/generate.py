@@ -8,6 +8,7 @@ ai-character-designer :: generate.py
 交互流程（对话式捏脸，先问后做，没想法才自动）：
   第 0 步  开场：摸清用户有没有想法
   第 1 步  角色基本信息：性别 / 年龄 / 国籍族裔 / 身份职业 / 时代服装 / 性格
+  第 1.5 步 风格路线：真实感(realism) / 精致写真(refined) / 标准(standard)
   第 2 步  骨皮形神四问（大白话二选一）→ 骨(修/敦) 皮(浓/淡) 形(聚/散) 神(锐/柔)
   第 3 步  16 型定位确认（四维 → 阵营 → 类型名）
   第 4 步  面部结构捏脸（逐项定脸型/眉眼/鼻/唇/皮肤/发型，写差异不写美）
@@ -190,6 +191,7 @@ def default_card():
         "bone_skin_shape_spirit": {"骨": "修", "皮": "淡", "形": "散", "神": "柔"},
         "camp": "抚慰者（淡×柔）",
         "type16": "恬静治愈",
+        "style": "standard",
         "face": {"face_shape": "鹅蛋脸（偏圆）", "brows_eyes": "眉平、眼型上三下二、内眼角略低",
                  "nose": "鼻梁自然骨感、鼻翼偏窄、鼻基底饱满", "lips": "唇薄、唇峰清晰",
                  "skin": "冷白自然肤色、哑光质感、保留轻微毛孔", "hair": "乌黑及肩直发、脸颊留细碎软发"},
@@ -324,6 +326,19 @@ def interactive_wizard(auto_mode=False):
         "personality": personality,
     }
 
+    # 第 1.5 步：风格路线（真实感 vs 精致写真 vs 标准）
+    print("\n[1.5/5] 风格路线（两条方向相反，先问清）：")
+    style_choice = ask_choice(
+        "  最终想要哪种质感？",
+        ["真实感 / 生活感（像手机随手拍、素人氛围，保留瑕疵）",
+         "精致 / 完美写真（影棚杂志感、高级精致、允许完美）",
+         "标准（默认，反蜡像但不刻意偏哪边）"],
+        default="标准（默认，反蜡像但不刻意偏哪边）",
+    )
+    style = ("realism" if "真实" in style_choice
+             else "refined" if "精致" in style_choice or "写真" in style_choice
+             else "standard")
+
     # 第 2 步：四问
     print("\n[2/5] 骨皮形神四问（凭直觉二选一，回车=该维自动）：")
     q_bone = ask_choice("  骨：整体气质「灵动轻盈」还是「沉稳敦厚」？", ["灵动轻盈", "沉稳敦厚"], default=None)
@@ -384,6 +399,7 @@ def interactive_wizard(auto_mode=False):
         "bone_skin_shape_spirit": bss,
         "camp": camp,
         "type16": type16,
+        "style": style,
         "face": face,
     })
     return card
@@ -392,8 +408,50 @@ def interactive_wizard(auto_mode=False):
 # ---------------------------------------------------------------------------
 # 4. gpt-image-2 提示词渲染
 # ---------------------------------------------------------------------------
-NEG_GPT_INLINE = "without over-smoothed waxy skin, without extra accessories, without deformity, without plastic-doll look"
-NEG_GPT_INLINE_ZH = "不要过度磨皮蜡像感，不要多余配饰，不要面部畸变"
+NEG_GPT_INLINE = "without over-smoothed waxy skin, without extra accessories, without deformity, without plastic-doll look"  # 已由 STYLE_NEG 取代，保留向后兼容
+
+# 风格路线（真实感 vs 精致写真 vs 标准）——两条路线方向相反，见 references/realism_vs_refined.md
+STYLE_SUFFIX = {
+    "realism": {
+        # 真实感：复刻手机随手拍 SNS 生活照，保留瑕疵
+        "zh": "整体如智能手机随手拍的生活照片，自然光，轻微噪点、轻微手抖、构图轻微倾斜，"
+              "皮肤保留毛孔与细绒毛、淡淡红晕，五官自然不对称、瞳孔不过度放大、视线略微偏移镜头，"
+              "头发留散落碎发，姿势如偶然抓拍而非摆拍，素人氛围感，拒绝 CG 塑料感与过度磨皮。",
+        "en": "like an SNS everyday photo taken on a smartphone by an ordinary person, natural light, "
+              "slight noise, slight camera shake, slightly tilted framing, skin with visible pores, fine fuzz and faint flush, "
+              "naturally asymmetric features, not overly enlarged pupils, gaze slightly off-camera, stray flyaway hairs, "
+              "candid snap rather than posed, natural amateur vibe, no CGI plastic look, no over-smoothing.",
+    },
+    "refined": {
+        # 精致写真：影棚/杂志级，允许完美
+        "zh": "影棚/杂志级精致人像，妆容精致，皮肤白皙通透，五官立体标准，光线通透柔和，"
+              "色调高级，构图工整，细节丰富，高清画质，突出面部质感与高级时尚氛围。",
+        "en": "studio/magazine-grade refined portrait, polished makeup, luminous flawless skin, "
+              "well-defined sculpted features, soft diffused lighting, refined color grading, "
+              "clean composition, highly detailed, high definition, emphasizing facial texture and high-fashion elegance.",
+    },
+    "standard": {
+        # 标准：默认反蜡像但不刻意做真实感或精致感
+        "zh": "写实摄影质感、自然光、细节真实、保留皮肤肌理与血色。",
+        "en": "Photorealistic, cinematic soft lighting, highly detailed, shallow depth of field.",
+    },
+}
+
+# 负向约束（按风格路线切换；精致写真路线不反磨皮）
+STYLE_NEG = {
+    "realism": {
+        "zh": "不要 CG 塑料感，不要过度磨皮，不要完美对称假脸，不要摆拍僵硬感。",
+        "en": "no CGI plastic look, no over-smoothed skin, no overly symmetric doll-like face, no stiff posed look.",
+    },
+    "refined": {
+        "zh": "不要素人感，不要粗糙画质，不要皮肤瑕疵，不要构图散乱。",
+        "en": "no amateur snapshot feel, no rough texture, no skin blemishes, no messy composition.",
+    },
+    "standard": {
+        "zh": "不要过度磨皮蜡像感，不要多余配饰，不要面部畸变。",
+        "en": "without over-smoothed waxy skin, without extra accessories, without deformity, without plastic-doll look.",
+    },
+}
 
 VIEW_ZH = {
     "portrait": "正面平视、均匀平光、干净纯色背景、聚焦面部特征（角色锚点图）",
@@ -468,18 +526,22 @@ def render(card, view):
     if view not in VIEW_ZH:
         raise ValueError("view must be portrait/fullbody/threeview")
 
+    style = card.get("style", "standard")
+    suffix = STYLE_SUFFIX.get(style, STYLE_SUFFIX["standard"])
+    neg = STYLE_NEG.get(style, STYLE_NEG["standard"])
+
     # 中文（gpt-image-2 可用的中文段落）
     zh_core = (f"{c['sub_zh']}，{c['bone_zh']}，{c['skin_zh']}，{c['shape_zh']}，{c['spirit_zh']}。"
                f"{c['face_zh']}。{c['body_zh']}。{c['out_zh']}。"
-               f"{c['el_zh']}。{VIEW_ZH[view]}。写实摄影质感、自然光、细节真实、保留皮肤肌理与血色。"
-               f"保持面部特征一致；{NEG_GPT_INLINE_ZH}。")
+               f"{c['el_zh']}。{VIEW_ZH[view]}。{suffix['zh']}"
+               f"保持面部特征一致；{neg['zh']}")
 
     # 英文（gpt-image-2 标准段落，负向并入正向句）
     gpt_en = (f"{c['sub_en']} with {c['bone_en']}, {c['skin_en']}, {c['shape_en']}, {c['spirit_en']}. "
               f"Face: {c['face_en']}. Body: {c['body_en']}. {c['out_en']}. "
               f"Expression & light: {c['el_en']}. {VIEW_EN[view]}. "
-              f"Photorealistic, cinematic soft lighting, highly detailed, shallow depth of field. "
-              f"Maintain consistent facial identity; {NEG_GPT_INLINE}.")
+              f"{suffix['en']} "
+              f"Maintain consistent facial identity; {neg['en']}.")
 
     return {"zh": zh_core, "en": gpt_en}
 
