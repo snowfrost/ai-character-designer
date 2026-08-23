@@ -58,6 +58,68 @@
 19. 头发不要根根整齐完美，保留散落碎发、翘起发丝、凌乱发束，柔和实拍氛围感
 20. 拥有好看的气质，优先侧重真实感、生活感、自然小瑕疵，不求绝对完美，收尾强化真实人像效果
 
+### 1.5 真实感进阶：生物细节词库 + 摄影参数（《AI数字模特》）
+
+> 来源：ima「AI技巧」知识库《AI数字模特》。给「真实感」路线提供**更硬核的词库**——不仅是"不完美"，而是把真人该有的生物特征逐处点名。核心构建公式：
+
+```
+[生物特征] + [核心瑕疵] + [情感表达] + [镜头设置]
+```
+
+**面部生物细节（逐部位点名，直接嵌入提示词）**
+
+| 部位 | 真实感关键词 |
+|---|---|
+| 眼睛 | 眼球红血丝、真实反射光线的虹膜、自然卷曲的睫毛、眉毛自然不规则形状和密度、不同年龄的眼窝下陷程度 |
+| 嘴巴 | 清晰的唇纹和褶皱、唇部颜色略有变化、唇周绒毛边缘柔和过渡、不对称唇部产生的自然阴影 |
+| 脸颊 | 细软发丝分布均匀、年龄变化的色素沉着、不规则的细小凹陷坑洞、半透明自然密度、带反光的绒毛外观 |
+| 鼻子 | 细小毛发均匀分布、隐约可见的黑头、逼真的阴影、鼻周可见毛孔、鼻尖轻微光泽 |
+| 头发 | 不均匀的前端绒毛、隐约的斑块结构、年龄带来的黑白过渡毛发、微小的发内皮屑 |
+
+**摄影参数（提升真实感的专业相机描述）**
+
+- 相机与镜头：`Canon EOS R5, 85mm portrait lens` / `100mm macro lens` / `尼康 Z9 105mm F/2.8`
+- 皮肤质感词：`natural skin texture, fine pores, subsurface scattering(次表面散射), imperfections, peach fuzz(细小绒毛), gentle highlights`
+- 负向词（原文示例）：`plastic skin, overly edited, heavy makeup, cartoon, anime, illustration, deformed hands, unnatural skin texture, unrealistic shadows`
+
+**完整正/负向示例（原文，超写实真实感）**
+> positive: `Professional studio portrait ... dewy skin with natural texture, fine pores, subtle imperfections, soft luminous skin glow, natural skin subsurface scattering, soft natural front lighting ... shot on Canon EOS R5 with an 85mm portrait lens, shallow depth of field, photorealistic, hyperrealistic skin details`
+> negative: `text, watermark, logo, blurry, low quality, distorted, ugly, overexposed, harsh lighting, plastic skin, overly edited, heavy makeup, cartoon, anime, illustration, deformed hands, extra limbs, bad anatomy, unnatural skin texture, grainy, noisy, unrealistic shadows`
+
+**情绪参数化（表情公式 `[主体情绪]+[面部细节]+[核心姿态]`，需表情时直接用）**
+
+- 惊讶：双眼圆睁、瞳孔放大、眉毛高扬、嘴 O 型大张
+- 悲伤：眉头皱起、眉尾下垂、双眼微垂、嘴角向下撇、下唇微噘
+- 愤怒：眉头紧锁下压、双眼怒睁、牙齿紧咬、面部肌肉紧绷、下颌线收紧
+- 害羞：视线侧移避开镜头、眉头微蹙、嘴角紧绷
+- 开心：双眼弯起、露齿笑、面部肌肉舒展、眉头上扬
+- 疲惫：双眼无神半睁、眉头微垂、嘴角平直、面部肌肉松弛
+- 困惑：眉头紧锁、双眼微眯、牙齿轻咬
+- 怀疑：视线侧移、眉头微蹙、嘴角紧绷、审视与不信任感
+- 害怕：双眼圆睁、瞳孔放大、眉头紧锁上扬、嘴巴微张
+- 自信：双眼平视、嘴角微抿、面部肌肉舒展、从容笃定
+
+**打光体系（`[主体构图]+[光影细节]+[核心风格]`）**
+
+| 光型 | 情绪 | AIGC 要领 |
+|---|---|---|
+| 伦勃朗光 | 深邃、古典、故事感 | 暗侧脸颊形成「倒三角光区」 |
+| 分段光 | 抉择、内在矛盾 | 明暗各半，分界线清晰利落 |
+| 环形光 | 亲和、专注、信任 | 眼球中形成圆形高光点，让眼神「活过来」 |
+| 正面光 | 直接、纯粹、信任 | 加「柔光箱/环形灯」避免过度扁平 |
+| 背光 | 神圣、分离、希望 | 描述「发丝光」「轮廓亮边」，正面需微弱补光 |
+| 侧光 | 坚韧、冲突、张力 | 控制光比，描述「明暗交界线」 |
+| 蝴蝶光 | 优雅、精致、千金感 | 鼻下「蝴蝶形」小投影，光源正前上方 |
+| 底光 | 神秘、诡异、反叛 | 慎用，易显廉价，结合「屏幕光自下而上」 |
+
+**镜头视角（情绪）**
+
+- 高角度俯拍：脆弱感、被保护感、亲近感
+- 低角度仰拍：力量感、权威感、引领感
+- 平视：亲近感、真实感、信任感、日常叙事
+- 超特写：私密感、冲击力、细腻叙事
+- 3/4 侧脸：故事感、深度、内省、优雅的叙事距离
+
 ---
 
 ## 2. 精致 / 完美写真路线（《15 组女主角》+ 大象学长写真）

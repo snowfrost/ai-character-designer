@@ -415,12 +415,13 @@ STYLE_SUFFIX = {
     "realism": {
         # 真实感：复刻手机随手拍 SNS 生活照，保留瑕疵
         "zh": "整体如智能手机随手拍的生活照片，自然光，轻微噪点、轻微手抖、构图轻微倾斜，"
-              "皮肤保留毛孔与细绒毛、淡淡红晕，五官自然不对称、瞳孔不过度放大、视线略微偏移镜头，"
+              "皮肤保留毛孔与细绒毛、淡淡红晕、次表面散射，五官自然不对称、瞳孔不过度放大、视线略微偏移镜头，"
               "头发留散落碎发，姿势如偶然抓拍而非摆拍，素人氛围感，拒绝 CG 塑料感与过度磨皮。",
         "en": "like an SNS everyday photo taken on a smartphone by an ordinary person, natural light, "
-              "slight noise, slight camera shake, slightly tilted framing, skin with visible pores, fine fuzz and faint flush, "
-              "naturally asymmetric features, not overly enlarged pupils, gaze slightly off-camera, stray flyaway hairs, "
-              "candid snap rather than posed, natural amateur vibe, no CGI plastic look, no over-smoothing.",
+              "slight noise, slight camera shake, slightly tilted framing, natural skin texture with visible pores, "
+              "peach fuzz, fine lines, faint flush, subsurface scattering, naturally asymmetric features, "
+              "not overly enlarged pupils, gaze slightly off-camera, stray flyaway hairs, "
+              "candid snap rather than posed, natural amateur vibe, photorealistic, no CGI plastic look, no over-smoothing.",
     },
     "refined": {
         # 精致写真：影棚/杂志级，允许完美
@@ -541,7 +542,7 @@ def render(card, view):
               f"Face: {c['face_en']}. Body: {c['body_en']}. {c['out_en']}. "
               f"Expression & light: {c['el_en']}. {VIEW_EN[view]}. "
               f"{suffix['en']} "
-              f"Maintain consistent facial identity; {neg['en']}.")
+              f"Maintain consistent facial identity; {neg['en']}")
 
     return {"zh": zh_core, "en": gpt_en}
 
