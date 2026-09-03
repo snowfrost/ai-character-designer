@@ -195,6 +195,7 @@ python scripts/generate.py --card card.json --generate --out ./out
 
 > 每次推送 GitHub 都会在此追加一条记录（日期 + 版本 + 变更说明）。
 
+- **2026-08-23 · v1.9** — 知识污染审查修复：①`validate_card`/`checklist_section` 反蜡像检查按 style 切换（refined 不再误报完美皮肤为蜡像，改为反向检查素人感）；②realism_vs_refined.md 标注真实感内部「生活随拍 vs 棚拍超写实」两种子类型不可混用、区分「身份三视图 vs 角色设定四视图」；③prompt_craft.md 标注 majicMIX 范式与糖系 Lora 为 **SD/Lora 专属**，禁止写入 gpt-image-2 提示词；④SKILL.md 注意事项新增「知识污染自查」。
 - **2026-08-23 · v1.8** — 补录 ima「AI技巧」知识库生图/人像部分（《AI数字模特》）：真实感路线新增生物细节词库（眼球红血丝/唇纹/脸颊绒毛/黑头/毛孔）、情绪参数化（表情公式）、打光体系（伦勃朗光/蝴蝶光等 8 种）、镜头视角、摄影参数（Canon EOS R5、subsurface scattering、peach fuzz）；`generate.py` realism 词库同步增强。
 - **2026-08-23 · v1.7** — 新增「风格路线」分野：真实感(realism) vs 精致写真(refined) vs 标准(standard)。回顾 ima「提示词工程」知识库生图/人像部分，新增 `references/realism_vs_refined.md`（20 条人像真实化要点 + 15 组女主角气质库 + 大象学长写真/三视图/换脸）。`generate.py` 交互向导加第 1.5 步风格路线提问，`render` 按 style 切换收尾词与负向词（精致路线不再反磨皮）。
 - **2026-08-22 · v1.6** — 提示词简化为 gpt-image-2 单格式：移除即梦/flux；中英分开，先中文（肖像/全身/三视）再英文（三视图）；`prompts.md`/`prompts.json` 结构同步调整，API 仅保留 OpenAI。
