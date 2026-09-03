@@ -28,8 +28,11 @@ ai-character-designer :: generate.py
   # 只出指定视图
   python generate.py --card card.json --views portrait,fullbody
 
-  # 配置接口后直接出图（出图前会打印提示词摘要并确认）
+  # 配置接口后直接出图（默认 RunningHub GPT Image 2 经济版；出图前会打印提示词摘要并确认）
   python generate.py --card card.json --generate --out ./out
+
+  # 指定 OpenAI 通道出图（需 OPENAI_API_KEY）
+  python generate.py --card card.json --generate --provider openai --out ./out
 
   # 跳过出图前确认（自动化/CI 用）
   python generate.py --card card.json --generate --yes --out ./out
@@ -411,15 +414,18 @@ def interactive_wizard(auto_mode=False):
 NEG_GPT_INLINE = "without over-smoothed waxy skin, without extra accessories, without deformity, without plastic-doll look"  # 已由 STYLE_NEG 取代，保留向后兼容
 
 # 风格路线（真实感 vs 精致写真 vs 标准）——两条路线方向相反，见 references/realism_vs_refined.md
+# ⚠️ realism 内部还有两种子类型（生活随拍 / 棚拍超写实，见 realism_vs_refined.md §0），互斥不能混用，
+#    由 realism_suffix_variant() 按角色卡 light 字段自动切换（2026-09 接入，修复"两层皮"）。
 STYLE_SUFFIX = {
     "realism": {
-        # 真实感：复刻手机随手拍 SNS 生活照，保留瑕疵
+        # 真实感·生活随拍型：复刻手机随手拍 SNS 生活照，保留瑕疵
+        # （皮肤细节词已移入六段式皮肤块 skin_blocks，此处只留快照氛围，避免重复）
         "zh": "整体如智能手机随手拍的生活照片，自然光，轻微噪点、轻微手抖、构图轻微倾斜，"
-              "皮肤保留毛孔与细绒毛、淡淡红晕、次表面散射，五官自然不对称、瞳孔不过度放大、视线略微偏移镜头，"
+              "皮肤带淡淡红晕与次表面散射，五官自然不对称、瞳孔不过度放大、视线略微偏移镜头，"
               "头发留散落碎发，姿势如偶然抓拍而非摆拍，素人氛围感，拒绝 CG 塑料感与过度磨皮。",
         "en": "like an SNS everyday photo taken on a smartphone by an ordinary person, natural light, "
-              "slight noise, slight camera shake, slightly tilted framing, natural skin texture with visible pores, "
-              "peach fuzz, fine lines, faint flush, subsurface scattering, naturally asymmetric features, "
+              "slight noise, slight camera shake, slightly tilted framing, faint flush and subsurface "
+              "scattering on the skin, naturally asymmetric features, "
               "not overly enlarged pupils, gaze slightly off-camera, stray flyaway hairs, "
               "candid snap rather than posed, natural amateur vibe, photorealistic, no CGI plastic look, no over-smoothing.",
     },
@@ -437,6 +443,76 @@ STYLE_SUFFIX = {
         "en": "Photorealistic, cinematic soft lighting, highly detailed, shallow depth of field.",
     },
 }
+
+# realism·棚拍超写实型（电影/摄影棚质感）：角色卡 light 含电影化光线词时自动切换到这套后缀
+STYLE_SUFFIX_REALISM_CINEMATIC = {
+    "zh": "电影级写实人像质感，85mm 人像镜头，光线沿额头、鼻梁和颧骨形成连续明暗转折，"
+          "阴影侧保留面部结构，五官自然不对称，头发留散落碎发，不磨皮，不过度油亮，"
+          "拒绝 CG 塑料感与过度磨皮。",
+    "en": "cinematic photorealistic portrait, 85mm portrait lens, light wrapping continuously across "
+          "the forehead, nose bridge and cheekbones with facial structure retained in the shadow side, "
+          "naturally asymmetric features, stray flyaway hairs, no over-smoothing, no greasy sheen, "
+          "no CGI plastic look.",
+}
+
+# 子类型自动判别关键词（命中即切换；两套都命中时随拍优先，因为"手机/随手拍"是最强信号）
+_CINE_KW = ["顶灯", "逆光", "侧逆光", "轮廓光", "布光", "三点式", "影棚", "镜头", "光圈",
+            "夜光", "城市光", "电影", "车窗", "黄昏", "金色", "暖光", "冷光", "聚光", "平光"]
+_SNAP_KW = ["手机", "随手拍", "生活照", "素人", "sns", "抓拍", "日常"]
+
+
+def realism_suffix_variant(card):
+    """realism 路线按角色卡光线描述自动选生活随拍 / 棚拍超写实后缀（两种子类型互斥）。"""
+    light = (card.get("expression_light", {}).get("light", "")
+             + card.get("subject", {}).get("era", ""))
+    low = light.lower()
+    if any(k in low for k in _SNAP_KW):
+        return STYLE_SUFFIX["realism"]
+    if any(k in light for k in _CINE_KW):
+        return STYLE_SUFFIX_REALISM_CINEMATIC
+    return STYLE_SUFFIX["realism"]
+
+
+# ---------------------------------------------------------------------------
+# 4.2 六段式皮肤块（Foyege 公式，references/prompt_craft.md §11）
+# 景别规则（弗曳哥）：全身只写整体肤色，近景/定妆才写毛孔绒毛高光。
+# 用户 face.skin 已含六段式特征词时不重复注入（检测：毛孔 + 高光/绒毛/唇纹 任一）。
+# ---------------------------------------------------------------------------
+SIXPART_ZH = ("皮肤为自然半哑光的{age_word}：额头毛孔细小、鼻翼略明显、面颊纹理大小不完全一致，"
+              "保留轻微肤色不均、鼻翼泛红与眼下微细纹；眉毛根部、太阳穴和面颊外缘保留透明细软绒毛，"
+              "只在掠射光经过时出现细小闪光；小而破碎的高光限定在鼻梁、颧骨上缘和下唇中心，"
+              "双颊与下颌维持低反射，不磨皮，不过度油亮。")
+SIXPART_EN = ("Skin: naturally semi-matte {age_word_en} — fine forehead pores, slightly more visible "
+              "pores at the nose wings, unevenly sized cheek texture, subtle uneven skin tone, mild "
+              "redness around the nose and fine lines under the eyes; transparent vellus hair at the "
+              "brow roots, temples and outer cheeks catching tiny glints only in grazing light; small "
+              "broken highlights confined to the nose bridge, upper cheekbones and lower-lip center, "
+              "cheeks and jaw kept low-reflective; no over-smoothing, no greasy sheen.")
+FULLBODY_SKIN_ZH = "远景只保留整体肤色自然一致，裸露皮肤与衣服反光保持材质差异（全身镜头不写毛孔细节）。"
+FULLBODY_SKIN_EN = ("At full-body distance only the overall skin tone stays consistent, with natural "
+                    "reflectance difference between bare skin and clothing (no pore detail at this distance).")
+
+_SIXPART_DONE_KW = ("毛孔",)
+_SIXPART_DONE_KW2 = ("高光", "绒毛", "唇纹", "掠射")
+
+
+def skin_blocks(view, card):
+    """按视图景别返回 (zh, en) 皮肤块；refined 路线与用户已写六段式时返回空串。"""
+    style = card.get("style", "standard")
+    if style == "refined":
+        return "", ""
+    skin = card.get("face", {}).get("skin", "")
+    # 用户皮肤段已按六段式写过（含毛孔 + 高光/绒毛/唇纹 任一）→ 不重复注入
+    if any(k in skin for k in _SIXPART_DONE_KW) and any(k in skin for k in _SIXPART_DONE_KW2):
+        return "", ""
+    age = card.get("subject", {}).get("age", "")
+    age_word = f"{age}岁成年皮肤" if age else "成年皮肤"
+    if view == "fullbody":
+        # 景别规则：全身只写整体肤色（弗曳哥：全身硬写毛孔会把模型注意力错误堆到脸上）
+        return FULLBODY_SKIN_ZH, FULLBODY_SKIN_EN
+    zh = SIXPART_ZH.format(age_word=age_word)
+    en = SIXPART_EN.format(age_word_en=f"{age}-year-old skin" if age else "adult skin")
+    return zh, en
 
 # 负向约束（按风格路线切换；精致写真路线不反磨皮）
 STYLE_NEG = {
@@ -529,17 +605,24 @@ def render(card, view):
 
     style = card.get("style", "standard")
     suffix = STYLE_SUFFIX.get(style, STYLE_SUFFIX["standard"])
+    if style == "realism":
+        suffix = realism_suffix_variant(card)   # 生活随拍 / 棚拍超写实 自动切换
     neg = STYLE_NEG.get(style, STYLE_NEG["standard"])
+
+    # 六段式皮肤块（按景别注入：portrait/threeview 全段，fullbody 只写整体肤色）
+    skin_zh, skin_en = skin_blocks(view, card)
+    skin_zh = (skin_zh + "。") if skin_zh else ""
+    skin_en = (skin_en + " ") if skin_en else ""
 
     # 中文（gpt-image-2 可用的中文段落）
     zh_core = (f"{c['sub_zh']}，{c['bone_zh']}，{c['skin_zh']}，{c['shape_zh']}，{c['spirit_zh']}。"
-               f"{c['face_zh']}。{c['body_zh']}。{c['out_zh']}。"
+               f"{c['face_zh']}。{skin_zh}{c['body_zh']}。{c['out_zh']}。"
                f"{c['el_zh']}。{VIEW_ZH[view]}。{suffix['zh']}"
                f"保持面部特征一致；{neg['zh']}")
 
     # 英文（gpt-image-2 标准段落，负向并入正向句）
     gpt_en = (f"{c['sub_en']} with {c['bone_en']}, {c['skin_en']}, {c['shape_en']}, {c['spirit_en']}. "
-              f"Face: {c['face_en']}. Body: {c['body_en']}. {c['out_en']}. "
+              f"Face: {c['face_en']}. {skin_en}Body: {c['body_en']}. {c['out_en']}. "
               f"Expression & light: {c['el_en']}. {VIEW_EN[view]}. "
               f"{suffix['en']} "
               f"Maintain consistent facial identity; {neg['en']}")
@@ -633,12 +716,25 @@ def validate_card(card):
     if "蹲" in posture or "跪" in posture:
         warns.append("[比例] 蹲姿建议 3.5–4 头身")
 
-    # 皮肤/蜡像自查
+    # 皮肤/蜡像自查（按风格路线：realism 反蜡像；refined 允许完美皮肤，反向检查素人感）
     skin = card.get("face", {}).get("skin", "")
-    bad_words = ["完美皮肤", "8k", "超现实", "无瑕", "瓷娃娃"]
+    style = card.get("style", "standard")
+    if style == "refined":
+        bad_words = ["素人感", "粗糙", "雀斑", "毛孔", "瑕疵", "痘印"]
+        hint = "这是精致写真路线，皮肤建议写「白皙通透/细腻水嫩」，不要素人瑕疵词"
+    else:
+        bad_words = ["完美皮肤", "8k", "超现实", "无瑕", "瓷娃娃"]
+        hint = "建议改「保留毛孔/肌理/血色」"
     for w in bad_words:
         if w.lower() in skin.lower():
-            warns.append(f"[反蜡像] 皮肤含「{w}」触发词，建议改「保留毛孔/肌理/血色」")
+            warns.append(f"[{'反蜡像' if style != 'refined' else '反素人'}] 皮肤含「{w}」触发词，{hint}")
+    # 六段式皮肤建议（弗曳哥公式）：用户皮肤段太薄时提示渲染器会自动补全
+    if style != "refined":
+        has_texture = any(k in skin for k in ("毛孔", "肌理", "纹理"))
+        has_highlight = any(k in skin for k in ("高光", "绒毛", "唇纹", "掠射"))
+        if not (has_texture and has_highlight):
+            warns.append("[建议] 皮肤段未含六段式特征（区域纹理+高光分布），渲染器将自动注入通用六段皮肤块"
+                         "（肖像/三视图）；想完全自定义请在 face.skin 里写全（见 prompt_craft.md §11）")
     return warns
 
 
@@ -659,9 +755,22 @@ def checklist_section(card):
         lines.append(f"- [ ] **{k}**：{v}")
     lines.append("")
     lines.append("### 反蜡像 / 千人一面")
-    lines.append("- [ ] 皮肤保留毛孔/血色/肌理，无「完美皮肤/8K/超现实」类词")
-    lines.append("- [ ] 每个部位写了具体差异（单眼皮/高颧骨/雀斑/法令纹…），而非「美/精致」")
-    lines.append("- [ ] 妆容重心明确（四选二），浓/淡颜定位一致")
+    style = card.get("style", "standard")
+    if style == "refined":
+        lines.append("- [ ] 皮肤白皙通透、细腻精致（本路线允许完美皮肤），无素人粗糙感")
+        lines.append("- [ ] 妆容精致、光线通透、构图工整（精致写真标准）")
+        lines.append("- [ ] 妆容重心明确（四选二），浓/淡颜定位一致")
+    elif style == "realism":
+        lines.append("- [ ] 皮肤保留毛孔/血色/肌理，无「完美皮肤/8K/超现实」类词")
+        lines.append("- [ ] 每个部位写了具体差异（单眼皮/高颧骨/雀斑/法令纹…），而非「美/精致」")
+        lines.append("- [ ] 妆容重心明确（四选二），浓/淡颜定位一致")
+        lines.append("- [ ] 六段式皮肤块已按景别注入（肖像/三视图全段；全身只写整体肤色——"
+                     "全身硬写毛孔会把模型注意力错误堆到脸上，弗曳哥景别规则）")
+        lines.append("- [ ] realism 子类型与光线描述匹配（生活随拍 vs 棚拍超写实，二者互斥不混用）")
+    else:
+        lines.append("- [ ] 皮肤保留毛孔/血色/肌理，无「完美皮肤/8K/超现实」类词")
+        lines.append("- [ ] 每个部位写了具体差异（单眼皮/高颧骨/雀斑/法令纹…），而非「美/精致」")
+        lines.append("- [ ] 妆容重心明确（四选二），浓/淡颜定位一致")
     lines.append("")
     lines.append("> 检查不过就回到角色卡改对应字段重新渲染，或出图后 PS 微调（见 engineering.md §8）。")
     return "\n".join(lines)
@@ -745,7 +854,56 @@ def call_api(model_key, prompt_obj, view, out_dir, config):
 
 
 # ---------------------------------------------------------------------------
-# 6. 主流程
+# 5.5 RunningHub 出图（默认路径：GPT Image 2 经济版）
+# ---------------------------------------------------------------------------
+# 本机默认生图路径 = RunningHub + GPT Image 2 经济版（低价渠道）。
+# 复用 runninghub skill 的脚本（~/.workbuddy/skills/runninghub/scripts/runninghub.py），
+# 它自动从 ~/.openclaw/openclaw.json 注入 API key（前缀 0c36****）。
+RH_SCRIPT = os.path.expanduser(
+    "~/.workbuddy/skills/runninghub/scripts/runninghub.py")
+RH_ENDPOINT = "rhart-image-g-2/text-to-image"   # GPT Image 2 经济版，文生图低价渠道
+RH_VIEW_RATIO = {   # 视图 → aspectRatio（RunningHub GPT Image 2 支持的比例）
+    "portrait": "2:3",
+    "fullbody": "9:16",
+    "threeview": "16:9",
+}
+RH_VIEW_RES = {"portrait": "2k", "fullbody": "2k", "threeview": "2k"}
+
+
+def call_runninghub(prompt_obj, view, out_dir):
+    """通过 runninghub skill 脚本调用 GPT Image 2 经济版生成单视图图。"""
+    if not os.path.exists(RH_SCRIPT):
+        print("  [跳过] 未找到 runninghub skill 脚本，先安装 RunningHub 技能")
+        return None
+    import subprocess
+    fn = os.path.join(out_dir, f"runninghub__{view}.png")
+    ratio = RH_VIEW_RATIO.get(view, "2:3")
+    res = RH_VIEW_RES.get(view, "2k")
+    cmd = ["python3" if os.name != "nt" else "python", RH_SCRIPT,
+           "--endpoint", RH_ENDPOINT,
+           "--prompt", prompt_obj["en"],
+           "--param", f"aspectRatio={ratio}",
+           "--param", f"resolution={res}",
+           "-o", fn]
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=240)
+        out = (r.stdout or "") + (r.stderr or "")
+        if r.returncode != 0:
+            print(f"  [RunningHub失败] {view}: {out[-300:]}")
+            return None
+        import re
+        m = re.search(r"OUTPUT_FILE:(\S+)", out)
+        if m and os.path.exists(m.group(1)):
+            print(f"  [已出图] {m.group(1)}")
+            m2 = re.search(r"COST:(\S+)", out)
+            if m2:
+                print(f"  [花费] {m2.group(1)}")
+            return m.group(1)
+        print(f"  [RunningHub无文件] {view}: {out[-200:]}")
+        return None
+    except Exception as e:
+        print(f"  [RunningHub异常] {view}: {e}")
+        return None
 # ---------------------------------------------------------------------------
 VIEW_TITLE = {"portrait": "肖像", "fullbody": "全身", "threeview": "三视"}
 VIEW_TITLE_EN = {"portrait": "Portrait", "fullbody": "Full-body", "threeview": "Three-view"}
@@ -759,7 +917,9 @@ def main():
     ap.add_argument("--desc", help="自由描述（暂仅作备注，建议用 --card 或交互向导）")
     ap.add_argument("--views", default="portrait,fullbody,threeview",
                     help="视图列表，逗号分隔：portrait,fullbody,threeview")
-    ap.add_argument("--generate", action="store_true", help="配置接口后直接出图（出图前会再次确认）")
+    ap.add_argument("--generate", action="store_true", help="配置接口后直接出图（默认 RunningHub GPT Image 2 经济版；出图前会再次确认）")
+    ap.add_argument("--provider", choices=["runninghub", "openai"], default="runninghub",
+                    help="出图通道：runninghub(默认, GPT Image 2 经济版) / openai(需 OPENAI_API_KEY)")
     ap.add_argument("--yes", action="store_true", help="配合 --generate：跳过出图前确认（自动化用）")
     ap.add_argument("--out", default="./character_output", help="输出目录")
     ap.add_argument("--config", help="config.json 路径")
@@ -819,7 +979,7 @@ def main():
         config = load_config(args.config)
         # 出图前必须确认：打印提示词摘要 + 询问
         print("\n" + "=" * 60)
-        print("[出图前确认] 将按以下提示词调用 gpt-image-2（视图 × 中英）：")
+        print(f"[出图前确认] 将按以下提示词调用 {args.provider} 通道（视图 × 中英）：")
         for view in views:
             p = results[view]
             print(f"  · {VIEW_TITLE.get(view, view)} / {VIEW_TITLE_EN.get(view, view)}")
@@ -837,10 +997,15 @@ def main():
         if not ok:
             print("[取消] 未开始出图。请先修改角色卡或提示词后重跑。")
             return
-        print("[出图模式] 调用已配置接口…")
+        print(f"[出图模式] 调用 {args.provider} 通道…")
         for view in views:
-            print(f"-> gpt_image_2 / {view}")
-            call_api("gpt_image_2", results[view], view, args.out, config)
+            if args.provider == "runninghub":
+                print(f"-> RunningHub GPT Image 2 经济版 / {view}")
+                call_runninghub(results[view], view, args.out)
+            else:
+                config = load_config(args.config)
+                print(f"-> gpt_image_2 / {view}")
+                call_api("gpt_image_2", results[view], view, args.out, config)
 
 
 if __name__ == "__main__":
