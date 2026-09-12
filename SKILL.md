@@ -33,6 +33,8 @@ agent_created: true
 5. **`references/prompt_craft.md`** — 写词手艺：小红书结构化提示词高级写法/万能模板/糖系流水线/三要素法/拒完美加肌理 + 麦橘五要素/权重语法/规避层三类翻车/表演大白话/角色小传驱动 + **六段式皮肤公式**（弗曳哥/Foyege，§11——`generate.py` 已接入：realism/standard 路线肖像与三视图自动注入六段皮肤块，全身视图只写整体肤色）。
 6. **`references/realism_vs_refined.md`** — **风格路线分野（新增）**：真实感路线（20 条人像真实化要点 + AI数字模特生物细节词库/情绪参数化/打光体系/摄影参数）vs 精致完美写真路线（15 组女主角气质库 + 大象学长写真/三视图/换脸），两条路线用词相反，必须按用户意图切换。
 7. **`references/academic.md`** — 三庭五眼/折叠度/黄金比 + 3 篇论文（解释「AI 脸=当代平均脸」与「结构>对称」）。
+8. **`references/structure_and_makeup.md`** — **骨相与妆容（南鸢/nuyoah 蒸馏）**：骨相三区关系写作法（眉骨眼窝/颧部/下颌下巴）+ 轴分离清单 + 气质与结构解耦（气质≠脸型，四路径实现）+ 妆容六要素 + 点名式修改协议（承接 identity_lock）+ 同妆不同脸阵容差异程序（六组计数）+ 反模板检查 + 冲突矩阵 + 参考图纪律（`generate.py` 已接入：makeup 字段渲染、骨相三区/反模板/模糊色审核）。
+9. `references/candid_snapshot.md` — **抓拍感公式（GitHub指北开源抓拍 Skill 蒸馏）**：realism「生活随拍」子类型的进阶镜头层语言——八层装配公式（未完成动作/未完成表情/焦段机位/构图/前景遮挡/光线驱动/三色块纪律/失控感收尾）+ 焦段机位库 + 前景遮挡词库 + 质感锚句 + 批量组照组合指令。核心心法：抓拍感 = 设计好的偶然，所有"随机感"必须显式写出。
 
 ---
 
@@ -125,6 +127,8 @@ agent_created: true
 | 鼻子 | 骨 + 形 | 鼻梁高/低？鼻翼宽/窄？鼻头圆/翘？ |
 | 嘴唇 | 神（柔→饱满，锐→偏薄） | 厚唇/薄唇？唇峰明显吗？ |
 | 皮肤 | 皮（浓→白皙亮泽，淡→自然肌理）+ 族裔 | 冷白/暖白/小麦？要不要雀斑/毛孔？ |
+| 骨相三区 | 眉骨/眼窝 + 颧部 + 下颌/下巴（南鸢） | 眉骨平缓还是突出？颧位高还是横向宽？下巴圆方尖、前伸后收？ |
+| 妆容（可选） | 妆容六要素（南鸢） | 重点选眼/唇/双颊/自然哪个？颜色落点线条质地？ |
 | 发型 | 时代 + 职业 + 性格 | 长短、直卷、颜色、刘海？ |
 
 > 关键：**每个部位都要写「具体差异」而非「美/精致」**。加 1–2 个不完美细节
@@ -156,6 +160,13 @@ python <skill>/scripts/generate.py --card card.json \
 ```
 
 输出 `./out/prompts.md`（可读提示词 + 末尾附出图检查清单）与 `./out/prompts.json`（结构化）。
+
+> ⚠️ **英文块是词表降级草稿，不是成品**：`generate.py` 的英文段由 `to_en()` 逐词查表生成，
+> 未命中的中文会**原样残留**（脸型/妆容/姿态等自由长句几乎全 miss），还会出现 `modernurban`、
+> `jet-blackstraight` 这类粘连词。**出图前必须由你（LLM）把中文段完整重译成英文**，禁止直接
+> 用英文块出图——残留中文会让底模吃不到骨相三区/妆容六要素等细节，退回默认「底模脸」，
+> 这正是 AI 感强、底模脸重的直接成因。脚本已内置硬校验：`--generate` 检测到英文含中文会
+> **拒绝出图**，并在 `prompts.md` 英文段标注 ⚠️。
 
 ### 第 5.5 步：用户确认提示词（必须！确认无误才出图）
 
@@ -215,6 +226,8 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
 - **realism 两子类型自动切换**：realism 路线内部「生活随拍」vs「棚拍超写实/电影感」互斥（`realism_vs_refined.md` §0）。渲染器按角色卡 `expression_light.light` 自动判别——含「顶灯/逆光/布光/影棚/镜头/电影…」走电影后缀（85mm 人像镜头、连续明暗转折），含「手机/随手拍/素人…」或无光线词走随拍后缀（噪点/手抖/倾斜构图）。角色卡光线与目标气质冲突时先改卡。
 - **写差异不写美（结构层，两种路线都适用）**：脸型/眉眼/鼻/唇的**结构**差异永远要写，AI 才不走平均值；refined 只是皮相质感可完美，结构差异照写。
 - **先问后做**：任何时候都不要跳过提问直接输出提示词；用户没想法才自动，且自动也要讲理由。
+- **气质不强制决定骨相（南鸢铁律）**：一种气质可以有不同的脸——圆脸可清冷、单眼皮可甜美。主气质从结构强化/妆容强化/表演强化/反差组合四路径选主辅实现，避免全部位拉满；用户锁定结构或说「这张脸我喜欢」时，气质改走妆/表情/造型路径。
+- **点名式修改协议（南鸢铁律）**：用户点名「这部分保留」时只动自由轴，锁定项一字不改；「只换口红颜色」= 保留唇形/唇缘/光泽/其它妆容与拍摄；「柔和一点」= 减少当前主导线条锐度（先调眼线/眉头/唇缘），不同时改脸型肤色发型；修改后交付完整新稿，不写「其它同上」。
 - **模型名/端点会变**：config 里的 `model` / `base_url` 以用户账号后台或官方文档为准，脚本已留默认值与降级提示。
 - **学术背书**：用 `academic.md` 的 Bernal 2024 等论文解释「为何要拆结构写差异」，增强说服力。
 - **知识污染自查（重要）**：本 skill 混合了多来源知识，使用前先确认没有互相污染——
@@ -223,4 +236,15 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
   - prompt_craft.md 里的 **SD/Lora 语法**（`1girl`、权重括号、CFG、Sugar Lora）**绝不写进 gpt-image-2 提示词**；
   - prompt_craft.md §4 三要素法「简洁英文短语」的说法是即梦/MJ 时代残留，gpt-image-2 走自然语言长句（以 prompt_standards.md 为准）；
   - 六段式皮肤公式**仅 realism/standard 路线**，refined/卡通路线不套用；视频侧 LIGHT RESPONSE 口径归 seedance25-prompt-skill（03-真人人物.md §6.9），两边不混写；
-  - 「身份三视图」（换脸）vs「角色设定四视图」（资产化）用途不同，别混（见 `realism_vs_refined.md` §3）。
+  - 「身份三视图」（换脸）vs「角色设定四视图」（资产化）用途不同，别混（见 `realism_vs_refined.md` §3）；
+  - 麦橘 16 型速查表 vs 南鸢气质解耦：16 型（皮×神定阵营、骨×形定细格）是**起点候选**，不是脸型模板；用户锁定结构时气质从妆/表情/造型走，不拿阵营倒推骨相（见 `structure_and_makeup.md` §2）；
+  - 骨相三区（南鸢，写骨骼关系）与六段式皮肤（弗曳哥，写皮肤表面）是**两套独立语言**，都写、不互相替代（§1 边界）。
+- **英文必须 LLM 完整翻译（铁律）**：`to_en()` 是词表降级，会把未命中中文原样塞进英文块（还出粘连词）。出图前必须由 LLM 把中文段完整重译成英文，禁止直接拿英文块调接口；否则底模吃不到细节、退回默认底模脸（AI 感/底模脸重的主因）。`generate.py --generate` 已内置 CJK 硬校验，检测到英文含中文会拒绝出图。
+- **出图英文必带「去底模脸」对抗词（铁律）**：英文 prompt 末尾必须带上负向词（`no CGI plastic look, no over-smoothed waxy skin, no overly symmetric doll-like face, no plastic-surgery look, no Instagram-filter face`）+ 正向真实感词（`naturally asymmetric features, subtle skin imperfections, fine visible skin texture, candid documentary look, subtle film grain, authentic real-person appearance`）。只靠中文段的特征描述不够，底模默认脸权重高，必须显式对抗。
+- **出图后必跑核验（铁律）**：生成图不是交付终点，必须对照 `prompts.md` 末尾清单逐项核验——①比例（头身/肩宽/坐姿）②三庭五眼 ③骨相三区是否还原 ④妆容六要素是否还原 ⑤AI 感/底模脸（脸是否又是「平均脸」）⑥负向词是否压住塑料感。核验不过就改角色卡或英文 prompt 重出，并向用户报告核验结论（哪里好、哪里没还原），不要只丢一张图。
+- **同角色换场/成套组照必走图生图（铁律）**：角色首张满意的肖像一经用户确认，即升级为「**脸锚点**」（归档进角色文件夹，如 `jianyu_portrait_2x3_v3.png`）。此后同角色的换场景、换构图、成套组照，**必须走图生图**（RunningHub `rhart-image-g-2/image-to-image`，`--image <锚点图>`），**禁止纯文生图硬描述**——纯文生图即便把骨相五官逐条写死，底模仍会飘回「平均脸」，一致性不可控。
+  - 图生图时 **prompt 里人脸身份块仍要完整重写**，不能只写场景：底模会在「保留身份」与「服从新场景」之间找平衡，人脸块越具体越不飘。骨架 = ①人脸身份块（`preserving her exact facial identity` + 骨相三区 + 记忆点逐条写死）②新场景块 ③服装块 ④表情块 ⑤反差句 ⑥镜头块 ⑦负向对抗块。
+  - 一次性出多张时，**脸锚点图固定不变**，只换场景块与构图，其余骨架复用。**完整可复制模板、气氛反差词表、实操参数与坑见 `references/prompt_craft.md` §12。**
+  - `scripts/generate.py --generate` 是**文生图**通道，只用于角色首张脸锚点的探索；成套组照请用 `--ref-image <锚点图>` 走图生图（或直接调 RunningHub `rhart-image-g-2/image-to-image`）。图生图时锚点图按角色卡 `--param aspectRatio` 保持比例，不要拉伸。
+- **气氛反差写法（铁律）**：环境词与人物词反向对撞——环境用暖亮词（`warm golden sunlight` / `blooming cherry blossom` / `fresh green foliage` / `dappled sunlight`），人物用冷硬词（`utterly cold and unsmiling` / `icy detached mood` / `a distant level gaze that does not flinch`），并**显式写出** `Strong mood contrast between the luminous warm light and her icy detached mood`，让模型理解这是刻意设计，而不是把两组矛盾描述各写一半导致效果互相抵消。
+- **抓拍感公式（realism 生活随拍进阶）**：用户要「抓拍 / 偷拍感 / 街拍 / 生活组照 / 像偶然拍到的瞬间」时，套用 `candid_snapshot.md` 八层装配公式——未完成动作+未完成表情、焦段机位、前景遮挡层、最多三个色块、失控感收尾+质感锚句（如「像一张偶然被朋友拍下的生活瞬间」）。只用于 realism 路线；批量组照组合指令（场景×服装×焦段机位）可用，但仍走脸锚点图生图铁律。
