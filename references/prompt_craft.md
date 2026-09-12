@@ -134,3 +134,38 @@ Hires upscaler R-ESRGAN 4x+ / 4x-UltraSharp；Hires 2+，Denoising 0.2~0.5；CFG
 - 老周/阿梅实测对照：眼周暗沉+毛孔明显+胡茬（区域纹理+瑕疵）+ 出租车顶灯（光线驱动）→ 出图真实感强，正是因为撞上了六段式；下次按公式**主动写全**而不是靠模型运气
 
 **边界**：仅写实/超写实路线（style: realism / standard）适用；精致写真/风格化路线不套用（会破坏目标美学）。卡通/漫画风角色严禁塞毛孔唇纹。**视频侧口径（LIGHT RESPONSE、景别-皮肤量、T+ 表演块）归 seedance25-prompt-skill 03-真人人物.md §6.9 / 09-表演与情绪.md §20.22，两边不混写。**
+
+## 12. 同角色换场：图生图锁脸模板（成套组照 / 换场景必用）
+
+**触发条件**：角色首张满意肖像经用户确认后 → 该图升级为「**脸锚点**」（归档进角色文件夹，如 `characters_jianyu/jianyu_portrait_2x3_v3.png`）。此后所有换场景、换构图、成套组照，**必须走图生图**（RunningHub `rhart-image-g-2/image-to-image`，`--image <锚点图>`）。**纯文生图即使把五官逐条写死也会飘回底模「平均脸」**，一致性不可控。
+
+**七段骨架**
+
+| # | 段落 | 作用 | 能否省 |
+|---|---|---|---|
+| 1 | 人脸身份块 | 骨相三区 + 记忆点 + `preserving her exact facial identity` | **不能省**。底模在「保留身份」与「服从新场景」之间找平衡，人脸块越具体越不飘 |
+| 2 | 新场景块 | 光照 / 环境 / 天气 / 道具 / 姿态 | 每次换的就是这段 |
+| 3 | 服装块 | 与角色卡 wardrobe 一致 | 建议留，省了会漂 |
+| 4 | 表情块 | `utterly cold and unsmiling, a distant level gaze ... that does not flinch` | **不能省** |
+| 5 | 反差句 | `Strong mood contrast between ... and ...` | 做气氛反差时必写 |
+| 6 | 镜头块 | 85mm / cinematic color grading / film grain / editorial / no retouching | **不能省** |
+| 7 | 负向对抗块 | 13 条去 AI 感（含 `no smile`） | **不能省** |
+
+**完整模板（复制后只改 {} 里的内容）**
+
+```
+A cinematic {head-and-shoulders portrait | full-body editorial photograph} of the same young {age} {ethnicity} from the reference image, preserving her exact facial identity and bone structure: {face contour}, {brow ridge}, {eye sockets}, {cheekbones}, {jawline}, {chin}, {记忆点1 眼型}, {记忆点2 眉型}, {记忆点3 唇色与唇形}, {肤色与肌理}. She {动作与位置} on a {光照与天气}, {环境元素}. She wears {服装}. Her expression stays utterly cold and unsmiling, {表情细节}, a distant level gaze {看向何处} that does not flinch. Strong mood contrast between {环境暖亮词} and {人物冷硬词}. Shot on an 85mm lens, shallow depth of field, cinematic color grading, subtle 35mm film grain, high-end fashion editorial, naturally asymmetric features, no retouching. Negative: no CGI plastic look, no over-smoothed waxy skin, no overly symmetric doll face, no plastic-surgery look, no Instagram-filter face, no Korean-glass-skin effect, no porcelain skin, no enlarged doll eyes, no airbrushed skin, no beauty-model retouching, no warm blush, no glossy lip, no smile.
+```
+
+**气氛反差写法**（环境词与人物词反向对撞，两组同时写足）
+
+- 环境侧（暖亮）：`warm golden sunlight` / `blooming cherry blossom` / `fresh green foliage` / `dappled sunlight filtering through leaves` / `sunlight almost overexposing the grass`
+- 人物侧（冷硬）：`utterly cold and unsmiling` / `icy detached mood` / `a distant level gaze that does not flinch` / `perfectly straight mouth corners`
+- **必须显式写出** `Strong mood contrast between {环境} and {人物}`，让模型理解这是刻意设计。否则两组矛盾描述各写一半，会互相抵消成一张平庸的图。
+
+**实操参数与坑**
+
+- 单张 40–210s（比文生图慢且波动大），并发 2 张稳定；2k + 竖版常用 `--param resolution=2k --param aspectRatio=2:3`
+- 一次出多张时**脸锚点图固定不变**，只换第 2 段（场景）与构图词，其余骨架原样复用
+- 图生图会顺着新场景自由发挥局部细节（如风吹散发丝），与角色卡设定冲突时**明确在场景块里否掉**（如 `no stray hairs, no flyaways`），不要指望底模自己守规矩
+- 验证记录（2026-09-12 简聿春光组 4 张）：同一锚点图 + 只换场景，四张脸一致，狭长平直眼 / 无弧度平直眉 / 裸灰粉柔雾唇 / 冷调浅米肤全部保住
