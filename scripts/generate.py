@@ -167,7 +167,9 @@ TRANS = {
 
 
 def to_en(zh: str) -> str:
-    """把中文描述尽量转成英文；未命中词保留中文（可接受）。"""
+    """把中文描述按词表尽量转成英文（仅作结构草稿，未命中词会残留中文）。
+    ⚠️ 这是词表降级，不是翻译：出图前必须由 LLM 对英文段完整重译，
+        否则残留中文会让底模吃不到细节、退回默认「底模脸」。"""
     if not zh:
         return ""
     out = zh
@@ -176,6 +178,11 @@ def to_en(zh: str) -> str:
         if k in out:
             out = out.replace(k, TRANS[k])
     return out
+
+
+def has_cjk(s: str) -> bool:
+    """检测字符串是否残留中文（CJK 统一表意文字 U+4E00–U+9FFF）。"""
+    return any('\u4e00' <= ch <= '\u9fff' for ch in (s or ""))
 
 
 # ---------------------------------------------------------------------------
@@ -419,14 +426,15 @@ NEG_GPT_INLINE = "without over-smoothed waxy skin, without extra accessories, wi
 STYLE_SUFFIX = {
     "realism": {
         # 真实感·生活随拍型：复刻手机随手拍 SNS 生活照，保留瑕疵
-        # （皮肤细节词已移入六段式皮肤块 skin_blocks，此处只留快照氛围，避免重复）
+        # （皮肤细节词已移入六段式皮肤块 skin_blocks；发型碎发归角色卡 face.hair 字段管，
+        #   此处不强制碎发——高冷/整洁人设会被强加碎发，2026-09-12 修复）
         "zh": "整体如智能手机随手拍的生活照片，自然光，轻微噪点、轻微手抖、构图轻微倾斜，"
               "皮肤带淡淡红晕与次表面散射，五官自然不对称、瞳孔不过度放大、视线略微偏移镜头，"
-              "头发留散落碎发，姿势如偶然抓拍而非摆拍，素人氛围感，拒绝 CG 塑料感与过度磨皮。",
+              "姿势如偶然抓拍而非摆拍，素人氛围感，拒绝 CG 塑料感与过度磨皮。",
         "en": "like an SNS everyday photo taken on a smartphone by an ordinary person, natural light, "
               "slight noise, slight camera shake, slightly tilted framing, faint flush and subsurface "
               "scattering on the skin, naturally asymmetric features, "
-              "not overly enlarged pupils, gaze slightly off-camera, stray flyaway hairs, "
+              "not overly enlarged pupils, gaze slightly off-camera, "
               "candid snap rather than posed, natural amateur vibe, photorealistic, no CGI plastic look, no over-smoothing.",
     },
     "refined": {
@@ -447,11 +455,11 @@ STYLE_SUFFIX = {
 # realism·棚拍超写实型（电影/摄影棚质感）：角色卡 light 含电影化光线词时自动切换到这套后缀
 STYLE_SUFFIX_REALISM_CINEMATIC = {
     "zh": "电影级写实人像质感，85mm 人像镜头，光线沿额头、鼻梁和颧骨形成连续明暗转折，"
-          "阴影侧保留面部结构，五官自然不对称，头发留散落碎发，不磨皮，不过度油亮，"
+          "阴影侧保留面部结构，五官自然不对称，不磨皮，不过度油亮，"
           "拒绝 CG 塑料感与过度磨皮。",
     "en": "cinematic photorealistic portrait, 85mm portrait lens, light wrapping continuously across "
           "the forehead, nose bridge and cheekbones with facial structure retained in the shadow side, "
-          "naturally asymmetric features, stray flyaway hairs, no over-smoothing, no greasy sheen, "
+          "naturally asymmetric features, no over-smoothing, no greasy sheen, "
           "no CGI plastic look.",
 }
 
@@ -572,6 +580,11 @@ def components(card):
     face_zh = "，".join([v for v in face.values() if v])
     face_en = "; ".join([to_en(v) for v in face.values() if v])
 
+    # 妆容段（南鸢六要素：部位+颜色+落点+线条+质地边缘+强度，独立于 face 字段渲染）
+    makeup = card.get("makeup", {})
+    makeup_zh = "妆容：" + "。".join([v for v in makeup.values() if v]) if makeup else ""
+    makeup_en = "Makeup: " + "; ".join([to_en(v) for v in makeup.values() if v]) if makeup else ""
+
     body = card.get("body", {})
     body_zh = "，".join([v for v in body.values() if v])
     body_en = "; ".join([to_en(v) for v in body.values() if v])
@@ -584,6 +597,11 @@ def components(card):
     el_zh = "、".join([v for v in el.values() if v])
     el_en = "; ".join([to_en(v) for v in el.values() if v])
 
+    # 检测哪些英文字段仍残留中文（词表降级未翻全）——出图前必须由 LLM 完整重译
+    en_fields = {"subject": sub_en, "face": face_en, "makeup": makeup_en,
+                 "body": body_en, "outfit": out_en, "expression_light": el_en}
+    untranslated_en = [k for k, v in en_fields.items() if has_cjk(v)]
+
     return {
         "sub_zh": sub_zh, "sub_en": sub_en,
         "bone_zh": bone_zh, "bone_en": bone_en,
@@ -591,9 +609,11 @@ def components(card):
         "shape_zh": shape_zh, "shape_en": shape_en,
         "spirit_zh": spirit_zh, "spirit_en": spirit_en,
         "face_zh": face_zh, "face_en": face_en,
+        "makeup_zh": makeup_zh, "makeup_en": makeup_en,
         "body_zh": body_zh, "body_en": body_en,
         "out_zh": out_zh, "out_en": out_en,
         "el_zh": el_zh, "el_en": el_en,
+        "untranslated_en": untranslated_en,
     }
 
 
@@ -615,19 +635,23 @@ def render(card, view):
     skin_en = (skin_en + " ") if skin_en else ""
 
     # 中文（gpt-image-2 可用的中文段落）
+    makeup_zh = (c["makeup_zh"] + "。") if c["makeup_zh"] else ""
+    makeup_en = (c["makeup_en"] + " ") if c["makeup_en"] else ""
     zh_core = (f"{c['sub_zh']}，{c['bone_zh']}，{c['skin_zh']}，{c['shape_zh']}，{c['spirit_zh']}。"
-               f"{c['face_zh']}。{skin_zh}{c['body_zh']}。{c['out_zh']}。"
+               f"{c['face_zh']}。{skin_zh}{makeup_zh}{c['body_zh']}。{c['out_zh']}。"
                f"{c['el_zh']}。{VIEW_ZH[view]}。{suffix['zh']}"
                f"保持面部特征一致；{neg['zh']}")
 
     # 英文（gpt-image-2 标准段落，负向并入正向句）
     gpt_en = (f"{c['sub_en']} with {c['bone_en']}, {c['skin_en']}, {c['shape_en']}, {c['spirit_en']}. "
-              f"Face: {c['face_en']}. {skin_en}Body: {c['body_en']}. {c['out_en']}. "
+              f"Face: {c['face_en']}. {skin_en}{makeup_en}Body: {c['body_en']}. {c['out_en']}. "
               f"Expression & light: {c['el_en']}. {VIEW_EN[view]}. "
               f"{suffix['en']} "
               f"Maintain consistent facial identity; {neg['en']}")
 
-    return {"zh": zh_core, "en": gpt_en}
+    en_cjk = has_cjk(gpt_en)
+    return {"zh": zh_core, "en": gpt_en, "en_cjk": en_cjk,
+            "en_untranslated": c["untranslated_en"]}
 
 
 # ---------------------------------------------------------------------------
@@ -735,6 +759,39 @@ def validate_card(card):
         if not (has_texture and has_highlight):
             warns.append("[建议] 皮肤段未含六段式特征（区域纹理+高光分布），渲染器将自动注入通用六段皮肤块"
                          "（肖像/三视图）；想完全自定义请在 face.skin 里写全（见 prompt_craft.md §11）")
+
+    # 骨相三区检查（南鸢规则）：原创人物建议写眉骨/眼窝、颧部、下颌/下巴具体关系
+    face_all = "，".join([str(v) for v in card.get("face", {}).values() if v])
+    zones = sum([
+        any(k in face_all for k in ("眉骨", "眼窝")),
+        "颧" in face_all,
+        any(k in face_all for k in ("下颌", "下巴")),
+    ])
+    if zones < 2 and not card.get("identity_lock", {}).get("locked_face", False):
+        warns.append(f"[建议] 骨相三区（眉骨/眼窝、颧部、下颌/下巴）只命中 {zones}/3 区，"
+                     "建议在 face 字段写出至少三区具体关系，别停在大词（见 structure_and_makeup.md §1）")
+
+    # 反模板检查（南鸢）：窄小脸+杏眼+高细鼻梁+尖下巴+饱满小嘴，≥3 个触发复核
+    template_marks = sum([
+        any(k in face_all for k in ("窄小脸", "小脸", "巴掌脸", "瓜子脸", "锥子脸")) or ("窄" in face_all and "小" in face_all),
+        "杏眼" in face_all or "杏又大" in face_all,
+        any(k in face_all for k in ("高挺", "高鼻梁", "细鼻", "挺直的鼻")),
+        "尖下巴" in face_all or "尖细的下巴" in face_all,
+        any(k in face_all for k in ("饱满的小嘴", "小巧的嘴", "饱满嘴唇", "嘟嘟唇")),
+    ])
+    if template_marks >= 3:
+        warns.append(f"[反模板] 命中网感模板组合 {template_marks}/5 项（窄小脸/杏眼/高细鼻梁/尖下巴/饱满小嘴），"
+                     "若是用户明确选择则保留，否则替换两个未锁定结构组（见 structure_and_makeup.md §5）")
+
+    # 妆容模糊色检查（南鸢）：流行色名要补具体色相
+    makeup_all = "，".join([str(v) for v in card.get("makeup", {}).values() if v]) + "，" + face_all
+    for vague in ("奶茶色", "豆沙色", "吃土色", "枫叶色"):
+        if vague in makeup_all:
+            suggests = {"奶茶色": "灰棕+奶白低饱和", "豆沙色": "粉棕+灰玫瑰",
+                        "吃土色": "暖土棕低饱和", "枫叶色": "红棕带橘调"}[vague]
+            warns.append(f"[建议] 妆容含流行色名「{vague}」，建议补实际色相（{suggests}），"
+                         "模型对流行色名理解不稳定（见 structure_and_makeup.md §3）")
+            break
     return warns
 
 
@@ -771,6 +828,14 @@ def checklist_section(card):
         lines.append("- [ ] 皮肤保留毛孔/血色/肌理，无「完美皮肤/8K/超现实」类词")
         lines.append("- [ ] 每个部位写了具体差异（单眼皮/高颧骨/雀斑/法令纹…），而非「美/精致」")
         lines.append("- [ ] 妆容重心明确（四选二），浓/淡颜定位一致")
+    lines.append("")
+    lines.append("### 骨相与妆容（南鸢规则）")
+    lines.append("- [ ] 骨相三区写了具体关系：眉骨/眼窝、颧部（宽/高/突三项独立）、下颌/下巴（相对颧宽+转折+前后）")
+    lines.append("- [ ] 轴已分离：眉骨≠眉毛、眼窝≠双眼皮、颧位高≠脸宽、尖下巴≠前伸（structure_and_makeup.md §1）")
+    lines.append("- [ ] 气质未强制改骨相：圆脸可清冷/单眼皮可甜美，主气质走结构/妆容/表演/反差四路径之一（§2）")
+    if card.get("makeup"):
+        lines.append("- [ ] 妆容六要素齐：部位+颜色+落点/范围+线条/方向+质地/边缘+强度；默认一个重点（§3）")
+        lines.append("- [ ] 流行色名已补实际色相（奶茶→灰棕+奶白、豆沙→粉棕+灰玫瑰）（§3）")
     lines.append("")
     lines.append("> 检查不过就回到角色卡改对应字段重新渲染，或出图后 PS 微调（见 engineering.md §8）。")
     return "\n".join(lines)
@@ -862,6 +927,7 @@ def call_api(model_key, prompt_obj, view, out_dir, config):
 RH_SCRIPT = os.path.expanduser(
     "~/.workbuddy/skills/runninghub/scripts/runninghub.py")
 RH_ENDPOINT = "rhart-image-g-2/text-to-image"   # GPT Image 2 经济版，文生图低价渠道
+RH_ENDPOINT_I2I = "rhart-image-g-2/image-to-image"   # 同款图生图渠道：同角色换场/成套组照锁脸用
 RH_VIEW_RATIO = {   # 视图 → aspectRatio（RunningHub GPT Image 2 支持的比例）
     "portrait": "2:3",
     "fullbody": "9:16",
@@ -870,8 +936,12 @@ RH_VIEW_RATIO = {   # 视图 → aspectRatio（RunningHub GPT Image 2 支持的�
 RH_VIEW_RES = {"portrait": "2k", "fullbody": "2k", "threeview": "2k"}
 
 
-def call_runninghub(prompt_obj, view, out_dir):
-    """通过 runninghub skill 脚本调用 GPT Image 2 经济版生成单视图图。"""
+def call_runninghub(prompt_obj, view, out_dir, ref_image=None):
+    """通过 runninghub skill 脚本调用 GPT Image 2 经济版生成单视图图。
+
+    传 ref_image（角色「脸锚点」图路径）时自动切图生图通道，
+    用于同角色换场景/成套组照时锁住同一张脸（纯文生图会飘回底模「平均脸」）。
+    """
     if not os.path.exists(RH_SCRIPT):
         print("  [跳过] 未找到 runninghub skill 脚本，先安装 RunningHub 技能")
         return None
@@ -879,12 +949,15 @@ def call_runninghub(prompt_obj, view, out_dir):
     fn = os.path.join(out_dir, f"runninghub__{view}.png")
     ratio = RH_VIEW_RATIO.get(view, "2:3")
     res = RH_VIEW_RES.get(view, "2k")
-    cmd = ["python3" if os.name != "nt" else "python", RH_SCRIPT,
-           "--endpoint", RH_ENDPOINT,
+    endpoint = RH_ENDPOINT_I2I if ref_image else RH_ENDPOINT
+    cmd = [sys.executable if os.name == "nt" else "python3", RH_SCRIPT,
+           "--endpoint", endpoint,
            "--prompt", prompt_obj["en"],
            "--param", f"aspectRatio={ratio}",
            "--param", f"resolution={res}",
            "-o", fn]
+    if ref_image:
+        cmd += ["--image", ref_image]
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=240)
         out = (r.stdout or "") + (r.stderr or "")
@@ -920,6 +993,9 @@ def main():
     ap.add_argument("--generate", action="store_true", help="配置接口后直接出图（默认 RunningHub GPT Image 2 经济版；出图前会再次确认）")
     ap.add_argument("--provider", choices=["runninghub", "openai"], default="runninghub",
                     help="出图通道：runninghub(默认, GPT Image 2 经济版) / openai(需 OPENAI_API_KEY)")
+    ap.add_argument("--ref-image",
+                    help="角色「脸锚点」图路径：传入则自动走图生图（GPT Image 2 经济版 image-to-image），"
+                         "用于同角色换场景/成套组照时锁住同一张脸；不传则文生图。配合 --generate 生效。")
     ap.add_argument("--yes", action="store_true", help="配合 --generate：跳过出图前确认（自动化用）")
     ap.add_argument("--out", default="./character_output", help="输出目录")
     ap.add_argument("--config", help="config.json 路径")
@@ -965,6 +1041,11 @@ def main():
     md.append("## English Prompts")
     for view in views:
         md.append(f"### {VIEW_TITLE_EN.get(view, view)}")
+        if results[view].get("en_cjk"):
+            fields = "、".join(results[view].get("en_untranslated", [])) or "多处"
+            md.append(f"> ⚠️ 本段英文为词表自动降级，仍残留中文（未翻全字段：{fields}）。"
+                      f"**禁止直接用此英文出图**——需由 LLM 完整翻译润色后再调接口，"
+                      f"否则底模吃不到细节、退回默认底模脸。")
         md.append(results[view]["en"])
         md.append("")
 
@@ -999,9 +1080,18 @@ def main():
             return
         print(f"[出图模式] 调用 {args.provider} 通道…")
         for view in views:
+            if results[view].get("en_cjk"):
+                fields = "、".join(results[view].get("en_untranslated", [])) or "多处"
+                print(f"  [拒绝出图] {view} 英文提示词含未翻译中文（{fields}），"
+                      f"请先由 LLM 完整翻译英文后再出图，避免底模吃不到细节导致 AI 感/底模脸。")
+                continue
             if args.provider == "runninghub":
-                print(f"-> RunningHub GPT Image 2 经济版 / {view}")
-                call_runninghub(results[view], view, args.out)
+                if args.ref_image:
+                    print(f"-> RunningHub GPT Image 2 经济版（图生图锁脸，参考 "
+                          f"{os.path.basename(args.ref_image)}）/ {view}")
+                else:
+                    print(f"-> RunningHub GPT Image 2 经济版 / {view}")
+                call_runninghub(results[view], view, args.out, args.ref_image)
             else:
                 config = load_config(args.config)
                 print(f"-> gpt_image_2 / {view}")
