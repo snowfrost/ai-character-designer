@@ -31,9 +31,12 @@ GitHub 仓库根目录即 Skill 根目录（无多余嵌套层）：
 │   ├── aesthetics.md                     # 肌肉/人体比例/头骨/三庭五眼/折叠度/颧颌夹角/阔窄面/妆容 + 检查清单
 │   ├── engineering.md                    # 工程化流程：标准照→锁脸→全身→四视图→一致性
 │   ├── prompt_standards.md               # ★核心：gpt-image-2 提示词标准、特征词库、API 配置
-│   ├── prompt_craft.md                   # 写词手艺：小红书结构化写法/糖系/三要素 + 麦橘五要素/权重/规避层
+│   ├── prompt_craft.md                   # 写词手艺：小红书结构化写法/糖系/三要素 + 麦橘五要素/权重/规避层 + 六段式皮肤公式 + 图生图锁脸模板
 │   ├── realism_vs_refined.md             # 风格路线：真实感 vs 精致写真（两条相反路线）
-│   └── academic.md                       # 三庭五眼/折叠度/黄金比 + 3 篇论文
+│   ├── academic.md                       # 三庭五眼/折叠度/黄金比 + 3 篇论文
+│   ├── structure_and_makeup.md           # 骨相三区 + 妆容六要素 + 同妆不同脸 + 点名式修改协议（南鸢蒸馏）
+│   ├── candid_snapshot.md                # 抓拍感公式八层装配（GitHub指北蒸馏，realism 生活随拍进阶）
+│   └── fantasy_life_force.md             # 事件层/皮肤光感/光学效果区域/反 AI 脸/成组防模板化/参考图脱敏（fantasy05 蒸馏，普适规则）
 └── scripts/
     └── generate.py                       # 渲染 gpt-image-2 中英双语提示词 + 可选直出图 + 审核/检查清单
 ```
@@ -195,6 +198,7 @@ python scripts/generate.py --card card.json --generate --out ./out
 
 > 每次推送 GitHub 都会在此追加一条记录（日期 + 版本 + 变更说明）。
 
+- **2026-09-27 · v2.0** — 吸收小红书 RedSkill 商店 fantasy05「Fantasy 生命感人像摄影」（只学不装，完整解包蒸馏）：新增 `references/fantasy_life_force.md`（事件层 11 推荐+9 禁止 / 皮肤柔润哑光高光白·黑名单 / 光学效果区域白名单每张 1 主+1 辅不碰五官 / 单人反 AI 脸最小差异 ≥3 项五官 / 成组防模板化景别 50/30/15/5+九连禁+场景差异矩阵 10 维+12 组配色 / 参考图脱敏 8 维至少改 5）；SKILL.md 加第 1.6 步事件层（`event.action` 字段）与成组出图防模板化小节；candid_snapshot.md 加 §8 与 fantasy_life_force 互补边界对照表。补记 9-12 两次未记版本：南鸢骨相三区+妆容六要素（structure_and_makeup.md）、GitHub指北抓拍感八层装配（candid_snapshot.md）、弗曳哥六段式皮肤+图生图锁脸模板（prompt_craft.md §11/§12）。
 - **2026-08-23 · v1.9** — 知识污染审查修复：①`validate_card`/`checklist_section` 反蜡像检查按 style 切换（refined 不再误报完美皮肤为蜡像，改为反向检查素人感）；②realism_vs_refined.md 标注真实感内部「生活随拍 vs 棚拍超写实」两种子类型不可混用、区分「身份三视图 vs 角色设定四视图」；③prompt_craft.md 标注 majicMIX 范式与糖系 Lora 为 **SD/Lora 专属**，禁止写入 gpt-image-2 提示词；④SKILL.md 注意事项新增「知识污染自查」。
 - **2026-08-23 · v1.8** — 补录 ima「AI技巧」知识库生图/人像部分（《AI数字模特》）：真实感路线新增生物细节词库（眼球红血丝/唇纹/脸颊绒毛/黑头/毛孔）、情绪参数化（表情公式）、打光体系（伦勃朗光/蝴蝶光等 8 种）、镜头视角、摄影参数（Canon EOS R5、subsurface scattering、peach fuzz）；`generate.py` realism 词库同步增强。
 - **2026-08-23 · v1.7** — 新增「风格路线」分野：真实感(realism) vs 精致写真(refined) vs 标准(standard)。回顾 ima「提示词工程」知识库生图/人像部分，新增 `references/realism_vs_refined.md`（20 条人像真实化要点 + 15 组女主角气质库 + 大象学长写真/三视图/换脸）。`generate.py` 交互向导加第 1.5 步风格路线提问，`render` 按 style 切换收尾词与负向词（精致路线不再反磨皮）。
