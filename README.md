@@ -36,7 +36,13 @@ GitHub 仓库根目录即 Skill 根目录（无多余嵌套层）：
 │   ├── academic.md                       # 三庭五眼/折叠度/黄金比 + 3 篇论文
 │   ├── structure_and_makeup.md           # 骨相三区 + 妆容六要素 + 同妆不同脸 + 点名式修改协议（南鸢蒸馏）
 │   ├── candid_snapshot.md                # 抓拍感公式八层装配（GitHub指北蒸馏，realism 生活随拍进阶）
-│   └── fantasy_life_force.md             # 事件层/皮肤光感/光学效果区域/反 AI 脸/成组防模板化/参考图脱敏（fantasy05 蒸馏，普适规则）
+│   ├── fantasy_life_force.md             # 事件层/皮肤光感/光学效果区域/反 AI 脸/成组防模板化/参考图脱敏（fantasy05 蒸馏，普适规则）
+│   ├── face_library_220.md               # ★220 脸型库：221 型编号索引 + 九项字段 + 毫米级锚点 + 四张菜单 + Seedance 保脸三步（image-portrait-3x4 蒸馏）
+│   ├── portrait_3x4.md                   # 3:4 定妆肖像规范：身份四定值 + 措辞纪律 + 中英模板 + 工艺基线 + QA 九条（image-portrait-3x4 蒸馏）
+│   ├── girlgroup_casting.md              # ★多人阵容选角：两种多人场景（同团两层锁定法 vs 独立组四象限各占一）+ 16 区块骨架 + 三道确认门 + RunningHub G-2 出图链路实测（girlgroup-casting 蒸馏）
+│   ├── girlgroup_casting_example.md      # 活样例·同团：棱镜Hz 四人女团面部资产提示词（4 人 × 16 区块）
+│   ├── casting_ab_example.md             # 活样例·独立组：A/B 双组八人（四象限各占一 + 锚点跨组查重 + 8 张出图实测记录）
+│   └── clean_rendering.md                # ★画面净化四层控制：材质光效 + 信息密度 + 干净渲染 + 负向卫生（im2-clean-image 蒸馏，所有路线收尾必过）
 └── scripts/
     └── generate.py                       # 渲染 gpt-image-2 中英双语提示词 + 可选直出图 + 审核/检查清单
 ```
@@ -184,7 +190,7 @@ python scripts/generate.py --card card.json --generate --out ./out
 
 ## 适用场景 / 触发词
 
-设计一个不撞脸的 AI 角色 · 生成角色三视图提示词 · AI 人像提示词 · 捏脸 / 角色设定 / 虚拟艺人 · 骨皮形神 / 麦橘 / gpt-image 提示词。
+设计一个不撞脸的 AI 角色 · 生成角色三视图提示词 · AI 人像提示词 · 捏脸 / 角色设定 / 虚拟艺人 · 骨皮形神 / 麦橘 / gpt-image 提示词 · 脸型库选型 / 220 脸型库 / 识别锚点 / 防撞脸 · 3:4 定妆肖像 / 定妆图 / 面部锚点 · 女团 / 男团 / 多人选角 / 团体面部资产 / 组合出道。
 
 ---
 
@@ -197,6 +203,11 @@ python scripts/generate.py --card card.json --generate --out ./out
 ## 更新记录
 
 > 每次推送 GitHub 都会在此追加一条记录（日期 + 版本 + 变更说明）。
+
+- **2026-10-11 · v2.4** — **A/B 双组八人实战经验提炼**（8 张 RunningHub G-2 出图全链路验证后回写）：①`girlgroup_casting.md` 新增 **§〇 两种多人场景**（同团模式：统一妆容母版 vs **独立组模式**：统一画笔 + 四大阵营各占一 + 锚点跨组查重 + 六维差异化校验），§八 出图链路升级为**主力通道**并补全实测记录（中文提示词 730–790 字直投可行、key 三级解析链含 OpenClaw config、出图脚本模式、8 张 5 分钟）；②新增 `references/casting_ab_example.md`——独立组活样例（A 组跨界职业 + B 组演员艺人，八人八位锚点查重表 + 出图实测 + 视觉验收分工说明）；③SKILL.md 多人阵容模式重写为双路线（同团/独立组）；④知识沉淀：「风格≠画风」防歧义（v2.3 后新增）、脸型库无逐条数据的诚实口径（v2.3 内）均来自本次实战纠错。
+- **2026-10-11 · v2.3** — ①**资产产物链重定义（王老师口径）**：角色最终产物改为三级「肖像（3:4 定妆）→ 肖像三视图（头部资产锁定）→ **全身三视图（无头部**，身体资产锁定：头身比/体态/服装/配饰；头部、头发和面部不可见，由空白背景遮挡，仿佛拍摄时完全没有头部；姿态放松、双臂自然垂于身体两侧）」——头部与身体分离管理，杜绝全身图的头部漂移与返修连坐；中英模板与验收要点落 `portrait_3x4.md` §六，`face_library_220.md` §6 四视图加注替换口径，SKILL.md 资产化小节与多人模式三道门同步。②**吸收 im2-clean-image**（github.com/q2522879285-source/im2-image-skills，只学不装）：新增 `references/clean_rendering.md`——gpt-image-2 提示词默认收尾净化层（材质光效层/信息密度层级焦点-支撑-安静三区/干净渲染防伪影/负向提示卫生），脏词替换表 14 条（ultra detailed→detail hierarchy 等）、人像配方与紧凑清理块、负向与「去底模脸五连」合并为单一出口、脏图干净重生模式（身份保持走图生图、画质净化走 clean-slate）；SKILL.md 总览 +14、知识污染自查 +1。
+- **2026-10-11 · v2.2** — 吸收 girlgroup-casting skill v1.0.0（prismhz_photo 仓库，只学不装）：①新增 `references/girlgroup_casting.md`——多人阵容选角方法论（固定妆容母版 + 可变身份两层锁定法、四项差异化铁律四选三不得降颜值、高审美底线、16 区块提示词骨架、主题色体系、三道确认门、迭代返修模式含撞型检测/单变量原则/回滚/单张重掷、多参考图职责分配、RunningHub G-2 批量出图备选通道与 PNG 完整性校验）；②新增 `references/girlgroup_casting_example.md`——棱镜Hz 四人女团完整实战案例（4 人 × 16 区块）；③SKILL.md：何时使用 + 多人团场景、新增「多人阵容模式」小节（团概念主题色 → 母版 → 可变层 → 16 区块 → 三道门 → 撞型检测六步流程）、方法论总览 +13、知识污染自查 +1（三套产物模板不混写）；④description/触发词补多人选角。
+- **2026-10-11 · v2.1** — 吸收 image-portrait-3x4 skill v1.1.1（只学不装）：①新增 `references/face_library_220.md`——220 脸型库全量（女 F001–F120 / 男 M001–M100，九项字段写死 + 220 个毫米级识别锚点不重复，防撞脸核心资产；六条铁律防性别漂移/侧脸/手部崩坏；风格层/身份层分离 + 16 画风/8 光/8 镜头/8 姿态四张菜单；Seedance 2.5 跨场景保脸三步法：定妆图→四视图→一行锚定句+参考图双喂；平台跨剧撞脸合规）；②新增 `references/portrait_3x4.md`——3:4 定妆肖像规范（身份四定值、正向措辞纪律与禁用→替换对照表、按需极简负向块、工艺基线六条优先级 + Clean Cinematic 总则、QA 九条）；③SKILL.md：方法论总览 +2 条、第 4 步捏脸加「脸型库选型（快）vs 逐项捏脸（细）」双路径、第 6 步自动模式挂库选型、资产化小节挂 Seedance 三步法、知识污染自查 +3 条边界；④description/触发词补脸型库与定妆肖像。
 
 - **2026-09-27 · v2.0** — 吸收小红书 RedSkill 商店 fantasy05「Fantasy 生命感人像摄影」（只学不装，完整解包蒸馏）：新增 `references/fantasy_life_force.md`（事件层 11 推荐+9 禁止 / 皮肤柔润哑光高光白·黑名单 / 光学效果区域白名单每张 1 主+1 辅不碰五官 / 单人反 AI 脸最小差异 ≥3 项五官 / 成组防模板化景别 50/30/15/5+九连禁+场景差异矩阵 10 维+12 组配色 / 参考图脱敏 8 维至少改 5）；SKILL.md 加第 1.6 步事件层（`event.action` 字段）与成组出图防模板化小节；candid_snapshot.md 加 §8 与 fantasy_life_force 互补边界对照表。补记 9-12 两次未记版本：南鸢骨相三区+妆容六要素（structure_and_makeup.md）、GitHub指北抓拍感八层装配（candid_snapshot.md）、弗曳哥六段式皮肤+图生图锁脸模板（prompt_craft.md §11/§12）。
 - **2026-08-23 · v1.9** — 知识污染审查修复：①`validate_card`/`checklist_section` 反蜡像检查按 style 切换（refined 不再误报完美皮肤为蜡像，改为反向检查素人感）；②realism_vs_refined.md 标注真实感内部「生活随拍 vs 棚拍超写实」两种子类型不可混用、区分「身份三视图 vs 角色设定四视图」；③prompt_craft.md 标注 majicMIX 范式与糖系 Lora 为 **SD/Lora 专属**，禁止写入 gpt-image-2 提示词；④SKILL.md 注意事项新增「知识污染自查」。
