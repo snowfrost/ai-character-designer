@@ -1,6 +1,6 @@
 ---
 name: ai-character-designer
-description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts in gpt-image-2 (OpenAI) format. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs bilingual prompts (中文三视图 + English three views). It also ships a 220-entry face library (F001–F120 / M001–M100, nine fixed fields + millimeter-precise identifying anchors, zero-duplicate anti-撞脸) as preset face values, a 3:4 定妆肖像 spec (neutral gray #808080 studio backdrop, positive-phrasing discipline, Seedance 2.5 face-lock 3-step), and a multi-member group casting mode (两层锁定法 fixed-makeup-master + variable-identity layers, 四项差异化 anti-clone rules, 16-block prompt skeleton, theme-color system, 3-gate confirmation flow, girlgroup-casting distilled). It also distinguishes two opposite style routes: 真实感/生活感 (realism, retaining pores/asymmetry/noise) vs 精致/完美写真 (refined, polished flawless studio look). If an API is configured (OPENAI_API_KEY), it can directly generate portrait, full-body, and three-view images. The skill ALWAYS interviews the user first (性别/年龄/国籍/身份职业/时代服装 → 风格路线 → 骨皮形神四问 → 16型定位 → 面部结构), shows the full prompts for confirmation, and only auto-generates when the user has no idea. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, 真实感人像/更真实, 精致写真/完美写真, 脸型库选型/220 脸型库/识别锚点/防撞脸, 3:4 定妆肖像/定妆图, 女团/男团/多人选角/团体面部资产/组合出道, or any mention of 骨皮形神 / 麦橘 / gpt-image prompts."
+description: "This skill should be used when a user wants to design, build, or generate a consistent, non-generic AI character (persona / virtual talent / 虚拟艺人 / 角色设定) and needs detailed bilingual Chinese-English prompts in gpt-image-2 (OpenAI) format. It implements 麦橘 MERJIC's 骨皮形神 16 型 methodology plus facial-aesthetics theory, and outputs bilingual prompts (中文三视图 + English three views). It also ships a 220-entry face library (F001–F120 / M001–M100, nine fixed fields + millimeter-precise identifying anchors, zero-duplicate anti-撞脸) as preset face values, a 3:4 定妆肖像 spec (neutral gray #808080 studio backdrop, positive-phrasing discipline, Seedance 2.5 face-lock 3-step), and a multi-member group casting mode (两层锁定法 fixed-makeup-master + variable-identity layers, 四项差异化 anti-clone rules, 16-block prompt skeleton, theme-color system, 3-gate confirmation flow, girlgroup-casting distilled). It also distinguishes two opposite style routes: 真实感/生活感 (realism, retaining pores/asymmetry/noise) vs 精致/完美写真 (refined, polished flawless studio look). If an API is configured (OPENAI_API_KEY), it can directly generate portrait, full-body, and three-view images. The skill ALWAYS interviews the user first (性别/年龄/国籍/身份职业/时代服装 → 风格路线 → 骨皮形神四问 → 16型定位 → 面部结构), shows the full prompts for confirmation, and only auto-generates when the user has no idea. Trigger on requests like 设计一个不撞脸的 AI 角色, 生成角色三视图提示词, AI 人像提示词, 捏脸/角色设定/虚拟艺人, 真实感人像/更真实, 精致写真/完美写真, 脸型库选型/220 脸型库/识别锚点/防撞脸, 3:4 定妆肖像/定妆图, 女团/男团/多人选角/团体面部资产/组合出道, 出图后验收/跨镜头一致性/角色漂移/换装探索, or any mention of 骨皮形神 / 麦橘 / gpt-image prompts."
 agent_created: true
 ---
 
@@ -40,7 +40,8 @@ agent_created: true
 11. **`references/face_library_220.md`** — **220 脸型库（image-portrait-3x4 蒸馏，2026-10-11 吸收）**：221 型全编号索引（女 F001–F120 / 男 M001–M100，按性别+年龄+气质选型），每型九项字段写死、220 个识别锚点毫米级不重复（防撞脸核心资产）；六条铁律（`[性别]`/`[妆容]` 不能删防性别漂移、`[镜头]` 防侧脸、`[姿态]` 防手部崩坏、`[识别]` 一字不动）；**风格层/身份层分离** + 四张替换菜单（16 画风 / 8 光 / 8 镜头 / 8 姿态）；Seedance 2.5 跨场景保脸三步法（定妆图 → 四视图 → 一行锚定句 + 参考图双喂）；平台跨剧撞脸合规。**第 4 步捏脸的预设取值来源**。
 12. **`references/portrait_3x4.md`** — **3:4 定妆肖像规范（image-portrait-3x4 蒸馏，2026-10-11 吸收）**：从零创造 3:4 竖版定妆肖像（面部锚点/定妆底图）的产物规范——身份四定值（骨相/五官/识别/气质写入即固定）、措辞纪律（正向为主、禁裁切锁死语义、负向词非必要不用 + 禁用→替换对照表）、中英模板、工艺基线六条优先级与 Clean Cinematic 总则、QA 九条、按需极简负向块四类。**出定妆图/脸锚点首图时用，与主管线三视图模板不混写**。
 13. **`references/girlgroup_casting.md`** — **多人阵容选角（girlgroup-casting 蒸馏，2026-10-11 吸收，同日实战补强）**：§〇 **两种多人场景**——同团模式（固定妆容母版 + 可变身份两层锁定、四项差异化铁律四选三不得降颜值、16 区块骨架、主题色体系、三道确认门）vs **独立组模式**（统一画笔 + 四大阵营各占一 + 锚点跨组查重 + 六维差异化校验）；迭代返修模式（撞型检测/气质微调/单变量原则/回滚/单张重掷）；多参考图职责分配；RunningHub G-2 批量出图主力通道（中文直投 + key 三级解析 + 出图脚本模式 + PNG 校验）。**活样例：`girlgroup_casting_example.md`（棱镜Hz·同团）、`casting_ab_example.md`（A/B 双组八人·独立组）**。
-14. **`references/clean_rendering.md`** — **画面净化四层控制（im2-clean-image 蒸馏，2026-10-11 吸收）**：gpt-image-2 提示词的**默认收尾净化层**——①材质光效层（主材质/表面响应/材质分离，不靠 8K/ultra detailed 替代物理）②信息密度层级（焦点/支撑/安静三区，细节密度递减，均匀细节密度＝结构性失败）③干净渲染层（防伪影：ghost texture/latent artifacts/塑料光/脏 AO）④负向提示卫生（负向槽不是旧失败记忆；正向锁优先；紧凑当前风险块）。脏词替换表 14 条、人像配方、脏图干净重生模式（身份保持走图生图，画质净化走 clean-slate，两件事别混）。**所有路线交付提示词前过一遍**。
+14. **`references/clean_rendering.md`** — **画面净化与提示词卫生（im2-clean-image + ai-material-realism + prompt-contamination-guard 蒸馏，2026-10-11 吸收）**：gpt-image-2 提示词的**默认收尾净化层**——①材质光效层（主材质/表面响应/材质分离，不靠 8K/ultra detailed 替代物理）+ **材质物理五控决策树**（AO 接触阴影/SSS 次表面散射/粗糙度各向异性/瑕疵/3D 拓扑映射/镜面反射，各带生效条件）②信息密度层级（焦点/支撑/安静三区，细节密度递减，均匀细节密度＝结构性失败）③干净渲染层（防伪影：ghost texture/latent artifacts/塑料光/脏 AO）④负向提示卫生（负向槽不是旧失败记忆；正向锁优先；紧凑当前风险块）⑤**提示词语义污染七类**（旧上下文残留/纠错排除泄漏/默认模板污染/负载标签/正向语义过载/内部流程泄漏/冲突语义锚 + 逐句溯源 + deletion test + stateless-generator read + 二元门）。脏词替换表 14 条、人像配方、脏图干净重生模式。**所有路线交付提示词前过一遍**。
+15. **`references/consistency_audit.md`** — **一致性审计与变量主权（MOKE SkillHub 四 skill 蒸馏，2026-10-11 吸收）**：出图前定规则、出图后做验收的治理层——①**跨张审计矩阵**（锚点先行，八维度×0–3 四级严重度×L1–L4 修复路由×修复后回归，含「视觉验收分工」：模型不能读图时作为交给用户的人工验收工具）②**实体三分法**（身份不变量/状态/镜头实例；名字不是身份锁）③**变量主权三档 I/C/E**（MUST KEEP / MAY VARY WITHIN / EXPLORE + 先过不变量门再评价惊喜，换装/批量探索前先分权）④**抽象词转可见契约**（「高级感/清冷」→意图—可观察特征—正例—反例—验收人五件套 + 代表性镜头试跑）。**出图后验收、多人横向审计、换装探索分权时用**。
 
 ---
 
@@ -248,7 +249,7 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
 - **同团模式**（「设计一支女团/组合」，全员统一风格）：
   1. 定团概念与主题色 → 每位成员分配主题色（呼应概念），先于个人设定。
   2. 定固定层母版：全员一致的妆容母版 + 摄影规格。
-  3. 逐人落可变层（可从 220 脸型库选编号）；**四项差异化铁律**：任两名成员在「脸型/眉眼/鼻唇/发型发际线」四项中至少三项明显不同，不得只换发色，不得降颜值制造差异。
+  3. 逐人落可变层（可从 220 脸型库选编号）；**四项差异化铁律**：任两名成员在「脸型/眉眼/鼻唇/发型发际线」四项中至少三项明显不同，不得只换发色，不得降颜值制造差异；**剪影多样性锁**（`girlgroup_casting.md` §二）——头面部四项之外，身高印象/四肢长度/肩胯平衡/站姿/发量/剪影轮廓逐人互异，**同团视觉语言、不同剪影**，不把同一身材比例块复制给全员。
   4. 16 区块组装（骨架见 `girlgroup_casting.md` §3），区块 1 必写「她与其他成员的身份差异」。
   5. 三道确认门：① 全员面部资产出图 → 逐人验收（单变量不连坐）→ ② 三视图（肖像三视图锁头 + 无头全身三视图锁身体与团服）→ ③ 才进 MV（归 seedance25 系 skill）。
   6. 出图后主动撞型检测。
@@ -258,7 +259,7 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
   2. **四大阵营各占一**：N≤4 时皮×神四象限各一人（洞察者/造梦者/抚慰者/凌越者）；N>4 时细格（骨×形）继续互异。
   3. 每人独立走单角色流程（路线/妆容/发型按人设分配，脸型库互异选型）。
   4. **锚点跨组查重**：N 个角色的锚点类型与位置全不重。
-  5. 出**六维差异化校验表**（脸型/眉眼/鼻唇/发型/锚点/阵营）交付前自查；出图后横向撞型检测。
+  5. 出**六维差异化校验表**（脸型/眉眼/鼻唇/发型/锚点/阵营）+ 剪影多样性（同团模式口径）交付前自查；出图后横向撞型检测。
 
 **返修纪律（两种模式通用）**：每次只修一个变量；气质微调动妆容不动骨相；迭代不如初版即回滚（v2/v3 命名保留全版本）；单张重掷用完整提示词原文。
 
@@ -280,8 +281,9 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
 - **资产产物链（三级，2026-10-11 王老师口径）**：**肖像（3:4 定妆）→ 肖像三视图（头部资产锁定：正/四分之三侧/正侧）→ 全身三视图（无头部，身体资产锁定：头身比/体态/服装/配饰）**。**全身三视图去掉头部**——头部身份由前两级锁定，全身图再画头等于引入第二份头部描述，漂移风险翻倍且返修连坐；**头部、头发和面部不可见，由空白背景遮挡，仿佛拍摄时完全没有头部**（不用头模），姿态放松、双臂自然垂于身体两侧。中英模板与验收要点见 `references/portrait_3x4.md` §六。
 - **3:4 定妆肖像**规范见 `references/portrait_3x4.md`（灰底 #808080、漫射平光、无服饰、身份四定值）。
 - **视频侧（Seedance 2.5）跨场景保脸三步法**（详见 `face_library_220.md` §6）：定妆图 → 肖像三视图 + 无头全身三视图（原四视图按新产物链替换）→ 正片每镜用**一行约 60 字锚定句**（九项压缩版，每集复制不改，只改场景动作），参考图按「头部卡 + 身体卡」组合喂。锁种子不跨场景，别在种子上浪费轮次。
-- 后期变装写明**身份锁**（不可改：五官/脸型/身材/发色；可改：衣服/场景/配饰）。
+- 后期变装写明**身份锁**（不可改：五官/脸型/身材/发色；可改：衣服/场景/配饰）。变装/多套造型批量生成前，先按 `consistency_audit.md` §三出 **I/C/E 变量主权表**（MUST KEEP = identity_lock.locked / MAY VARY WITHIN / EXPLORE），一轮只放开 1–2 个探索变量，验收顺序 I→C→E（不变量挂了直接淘汰，不参与惊艳排名）。
 - 分镜强制带角色标签 + 表情语法（见 `engineering.md` §6）。
+- **出图后验收走审计矩阵**（`consistency_audit.md` §一）：锚点先行，八维度×0–3 严重度×L1–L4 修复路由；修复后同矩阵回归，3 级未清零不交付。模型侧不能读图时，把矩阵表随图交付给用户做人工验收（视觉验收分工）。
 
 ## 注意事项
 
@@ -308,6 +310,7 @@ python <skill>/scripts/generate.py --card card.json --generate --out ./out
   - **负向体系只有一套出口**：「去底模脸五连」与 im2 的人像 Avoid 模板**合并成一个紧凑块**（见 `clean_rendering.md` §六），不叠两套负向；交付前跑一遍四层净化（材质/密度/干净渲染/负向卫生），脏图走干净重生不走图生图反复洗；
   - **脸型库 `[气质]` 定值与南鸢「气质与结构解耦」不冲突**：南鸢管设计阶段（气质不强制决定骨相，四路径实现），定值管出图阶段（气质词写入后不得为救构图而改）——一个管入口，一个管出口；
   - **脸型库 `[镜头]`/`[姿态]` 菜单只用于定妆肖像与分镜单张**，角色卡三视图的构图由 `generate.py` 视图模板决定，不把菜单句写进角色卡 `face` 字段。
+  - **一致性治理三件套各管一段，不串台**（2026-10-11 吸收 MOKE 四 skill 后新增）：锚点查重表（`casting_ab_example.md`）管**出图前设计**；审计矩阵（`consistency_audit.md` §一）管**出图后验收**；I/C/E 主权表（§三）管**生成前分权**——不要拿查重表去审图、拿矩阵去设计锚点、拿主权表去当验收单。视频侧跨镜头连续性（首末帧/分镜承接）归 seedance25 系 skill，`consistency_audit.md` 只管静态图资产链。语义污染七类（`clean_rendering.md` §九）与知识污染自查（本节）的关系：本节管 **skill 内部知识源之间**不串，§九管**单条提示词语义场内部**不脏。
 - **英文必须 LLM 完整翻译（铁律）**：`to_en()` 是词表降级，会把未命中中文原样塞进英文块（还出粘连词）。出图前必须由 LLM 把中文段完整重译成英文，禁止直接拿英文块调接口；否则底模吃不到细节、退回默认底模脸（AI 感/底模脸重的主因）。`generate.py --generate` 已内置 CJK 硬校验，检测到英文含中文会拒绝出图。
 - **出图英文必带「去底模脸」对抗词（铁律）**：英文 prompt 末尾必须带上负向词（`no CGI plastic look, no over-smoothed waxy skin, no overly symmetric doll-like face, no plastic-surgery look, no Instagram-filter face`）+ 正向真实感词（`naturally asymmetric features, subtle skin imperfections, fine visible skin texture, candid documentary look, subtle film grain, authentic real-person appearance`）。只靠中文段的特征描述不够，底模默认脸权重高，必须显式对抗。
 - **出图后必跑核验（铁律）**：生成图不是交付终点，必须对照 `prompts.md` 末尾清单逐项核验——①比例（头身/肩宽/坐姿）②三庭五眼 ③骨相三区是否还原 ④妆容六要素是否还原 ⑤AI 感/底模脸（脸是否又是「平均脸」）⑥负向词是否压住塑料感。核验不过就改角色卡或英文 prompt 重出，并向用户报告核验结论（哪里好、哪里没还原），不要只丢一张图。
